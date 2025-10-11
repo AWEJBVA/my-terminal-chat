@@ -79,6 +79,12 @@
             margin: 2px 0;
             color: #f00; /* Красный для бана бота */
         }
+        .online {
+            color: #0f0;
+        }
+        .offline {
+            color: #888;
+        }
         @media (max-width: 600px) {
             body {
                 padding: 5px;
@@ -101,7 +107,17 @@
         <input type="text" id="command-input" autofocus>
     </div>
 
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
+        // Supabase config - with your provided keys
+        const SUPABASE_URL = 'https://dbqngtlzgwvlyjqraolu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRicW5ndGx6Z3d2bHlqcXJhb2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTU4NjksImV4cCI6MjA3NTc3MTg2OX0.XFVXVCrTzm91TkjENo9swhOSjvxl9I1rVW8evogBu_Y';
+
+        // Initialize Supabase
+        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const terminal = document.getElementById('terminal');
         const commandInput = document.getElementById('command-input');
         const prompt = document.getElementById('prompt');
@@ -115,18 +131,18 @@
 - help: Show this help message
 - clear: Clear the terminal
 - date: Show current date and time
-- nick [name]: Set your nickname (only once)
+- nick [name]: Set your nickname (only once) - registers you
 - obchat: Enter general chat (type /exit to leave)
+- users_ip: Show registered users and who is online with IP, nick, and registration time
 - tongue [lang]: Change language (en, ru, zh)
 - notif: Show notifications`,
                 adminHelp: `\nAdmin commands (nk.exe2089 only):
 - ban [nick] [time] [reason]: Ban a user from entering chat
 - unban [nick] [reason]: Unban a user from chat
-- users_ip: Show users in general chat and recent logins with IP, nick, and entry time
 - bot [on|off]: Toggle moderation bot in chat
 - prov: Check bot status`,
                 dateCmd: () => new Date().toString(),
-                nickSet: (nick) => `Nickname set to ${nick}`,
+                nickSet: (nick) => `Nickname set to ${nick}. You are now registered!`,
                 nickAlreadySet: 'Nickname can only be set once.',
                 nickUsage: 'Usage: nick <name>',
                 setNickFirst: 'Please set a nickname first using "nick <name>".',
@@ -142,7 +158,9 @@
                 unbanUsage: 'Usage: unban <nick> [reason]',
                 unbanDone: (nick, reason) => `User ${nick} has been unbanned. Reason: ${reason}`,
                 notBanned: (nick) => `User ${nick} is not banned.`,
-                usersIpTitle: 'Users IP List\nNick\tIP\tEntry Time\n',
+                usersIpTitle: 'Registered Users List\nNick\tIP\tRegistration Time\tStatus\n',
+                onlineStatus: 'Online',
+                offlineStatus: 'Offline',
                 botOn: 'Moderation bot enabled in chat.',
                 botOff: 'Moderation bot disabled in chat.',
                 botStatusOn: 'Bot is ON.',
@@ -158,18 +176,18 @@
 - help: Показать это сообщение помощи
 - clear: Очистить терминал
 - date: Показать текущую дату и время
-- nick [имя]: Установить ваш никнейм (только один раз)
+- nick [имя]: Установить ваш никнейм (только один раз) - регистрирует вас
 - obchat: Войти в общий чат (введите /exit для выхода)
+- users_ip: Показать зарегистрированных пользователей и кто онлайн с IP, ником и временем регистрации
 - tongue [lang]: Сменить язык (en, ru, zh)
 - notif: Показать уведомления`,
                 adminHelp: `\nКоманды администратора (только для nk.exe2089):
 - ban [ник] [время] [причина]: Забанить пользователя от входа в чат
 - unban [ник] [причина]: Разбанить пользователя из чата
-- users_ip: Показать пользователей в общем чате и недавние входы с IP, ником и временем входа
 - bot [on|off]: Включить/выключить модерационного бота в чате
 - prov: Проверить статус бота`,
                 dateCmd: () => new Date().toLocaleString('ru-RU'),
-                nickSet: (nick) => `Никнейм установлен: ${nick}`,
+                nickSet: (nick) => `Никнейм установлен: ${nick}. Вы теперь зарегистрированы!`,
                 nickAlreadySet: 'Никнейм можно установить только один раз.',
                 nickUsage: 'Использование: nick <имя>',
                 setNickFirst: 'Сначала установите никнейм с помощью "nick <имя>".',
@@ -185,7 +203,9 @@
                 unbanUsage: 'Использование: unban <ник> [причина разбана]',
                 unbanDone: (nick, reason) => `Пользователь ${nick} разбанен. Причина: ${reason}`,
                 notBanned: (nick) => `Пользователь ${nick} не забанен.`,
-                usersIpTitle: 'Список IP пользователей\nНик\tIP\tВремя входа\n',
+                usersIpTitle: 'Список зарегистрированных пользователей\nНик\tIP\tВремя регистрации\tСтатус\n',
+                onlineStatus: 'Онлайн',
+                offlineStatus: 'Оффлайн',
                 botOn: 'Модерационный бот включен в чате.',
                 botOff: 'Модерационный бот выключен в чате.',
                 botStatusOn: 'Бот включен.',
@@ -201,18 +221,18 @@
 - help: 显示此帮助消息
 - clear: 清空终端
 - date: 显示当前日期和时间
-- nick [name]: 设置您的昵称 (仅一次)
+- nick [name]: 设置您的昵称 (仅一次) - 注册您
 - obchat: 进入通用聊天 (输入 /exit 退出)
+- users_ip: 显示注册用户和在线用户，带 IP、昵称和注册时间
 - tongue [lang]: 更改语言 (en, ru, zh)
 - notif: 显示通知`,
                 adminHelp: `\n管理员命令 (仅 nk.exe2089):
 - ban [nick] [time] [reason]: 禁止用户进入聊天
 - unban [nick] [reason]: 解除用户聊天禁令
-- users_ip: 显示通用聊天中的用户和最近登录的 IP、昵称和进入时间
 - bot [on|off]: 切换聊天中的 moderation bot
 - prov: 检查 bot 状态`,
                 dateCmd: () => new Date().toLocaleString('zh-CN'),
-                nickSet: (nick) => `昵称设置为 ${nick}`,
+                nickSet: (nick) => `昵称设置为 ${nick}。您现在已注册！`,
                 nickAlreadySet: '昵称只能设置一次。',
                 nickUsage: '用法: nick <name>',
                 setNickFirst: '请先使用 "nick <name>" 设置昵称。',
@@ -228,7 +248,9 @@
                 unbanUsage: '用法: unban <nick> [reason]',
                 unbanDone: (nick, reason) => `用户 ${nick} 已解除禁令。原因: ${reason}`,
                 notBanned: (nick) => `用户 ${nick} 未被禁止。`,
-                usersIpTitle: '用户 IP 列表\n昵称\tIP\t进入时间\n',
+                usersIpTitle: '注册用户列表\n昵称\tIP\t注册时间\t状态\n',
+                onlineStatus: '在线',
+                offlineStatus: '离线',
                 botOn: '聊天 moderation bot 已启用。',
                 botOff: '聊天 moderation bot 已禁用。',
                 botStatusOn: 'Bot 已开启。',
@@ -253,103 +275,196 @@
         let bannedUsers = new Map();
         let botEnabled = false;
         let notifications = [];
+        let registeredUsers = new Map(); // lowerNick -> {displayNick, ip, regTime}
+        let chatSubscription = null;
+        let onlineUsers = new Set();
         
-        // Persistence - all in localStorage
-        function loadState() {
-            const savedNick = localStorage.getItem('pipelNick');
-            if (savedNick && savedNick !== 'user') {
-                currentNick = savedNick;
-                isNickSet = true;
-            }
-            const savedLang = localStorage.getItem('pipelLang');
-            if (savedLang && translations[savedLang]) currentLang = savedLang;
-            
-            const savedBot = localStorage.getItem('pipelBotEnabled');
-            if (savedBot !== null) botEnabled = JSON.parse(savedBot);
-            
-            const savedNotifs = localStorage.getItem('pipelNotifications');
-            if (savedNotifs) {
-                try {
-                    notifications = JSON.parse(savedNotifs);
-                    notifications = notifications.slice(-50); // Keep only last 50
-                } catch (e) {
-                    console.error('Failed to load notifications:', e);
-                    notifications = [];
-                }
-            }
+        // Supabase tables
+        const USERS_TABLE = 'users';
+        const BANS_TABLE = 'bans';
+        const CHAT_MESSAGES_TABLE = 'chat_messages';
+        const BOT_SETTINGS_TABLE = 'bot_settings';
+        const ONLINE_USERS_TABLE = 'online_users';
+        
+        // Load state from Supabase
+        async function loadState() {
+            try {
+                // Load user data
+                const { data: userData } = await supabase
+                    .from(USERS_TABLE)
+                    .select('*')
+                    .eq('lower_nick', currentNick.toLowerCase())
+                    .single();
 
-            const savedIsNickSet = localStorage.getItem('pipelIsNickSet');
-            if (savedIsNickSet !== null) {
-                isNickSet = JSON.parse(savedIsNickSet);
-            } else if (savedNick && savedNick !== 'user') {
-                isNickSet = true;
-            }
-        }
-        
-        function saveNick() {
-            localStorage.setItem('pipelNick', currentNick);
-        }
-        
-        function saveIsNickSet() {
-            localStorage.setItem('pipelIsNickSet', JSON.stringify(isNickSet));
-        }
-        
-        function saveLang() {
-            localStorage.setItem('pipelLang', currentLang);
-        }
-        
-        function loadBans() {
-            const savedBans = localStorage.getItem('pipelBans');
-            if (savedBans) {
-                try {
-                    const bans = JSON.parse(savedBans);
-                    bannedUsers = new Map(bans.map(([k, v]) => [k, v]));
-                    for (const [nick, ban] of bannedUsers.entries()) {
-                        if (Date.now() >= ban.endTime) {
-                            bannedUsers.delete(nick);
-                        }
-                    }
-                    saveBans(); // Update storage
-                } catch (e) {
-                    console.error('Failed to load bans:', e);
+                if (userData) {
+                    currentLang = userData.lang || 'en';
+                    isNickSet = userData.is_nick_set || false;
+                    notifications = userData.notifications || [];
+                    notifications = notifications.slice(-50);
                 }
+
+                // Load bot enabled
+                const { data: botData } = await supabase
+                    .from(BOT_SETTINGS_TABLE)
+                    .select('enabled')
+                    .single();
+                botEnabled = botData?.enabled || false;
+
+                // Load bans
+                await loadBans();
+
+                // Load registered users
+                const { data: regsData } = await supabase.from(USERS_TABLE).select('*');
+                regsData?.forEach(user => {
+                    registeredUsers.set(user.lower_nick, {
+                        displayNick: user.display_nick,
+                        ip: user.ip,
+                        regTime: new Date(user.reg_time).getTime()
+                    });
+                });
+
+                updateLanguage();
+            } catch (error) {
+                console.error('Error loading state:', error);
             }
         }
-        
-        function saveBans() {
-            const bansArray = Array.from(bannedUsers.entries());
-            localStorage.setItem('pipelBans', JSON.stringify(bansArray));
+
+        // Save user state
+        async function saveUserState() {
+            try {
+                await supabase
+                    .from(USERS_TABLE)
+                    .upsert({
+                        lower_nick: currentNick.toLowerCase(),
+                        display_nick: currentNick,
+                        lang: currentLang,
+                        is_nick_set: isNickSet,
+                        notifications: notifications,
+                        ip: generateIP(),
+                        reg_time: new Date().toISOString()
+                    });
+            } catch (error) {
+                console.error('Error saving user state:', error);
+            }
         }
-        
-        function saveBotState(enabled) {
-            localStorage.setItem('pipelBotEnabled', JSON.stringify(enabled));
+
+        // Load bans
+        async function loadBans() {
+            try {
+                const { data: bansData } = await supabase.from(BANS_TABLE).select('*');
+                bannedUsers.clear();
+                bansData?.forEach(ban => {
+                    if (Date.now() < new Date(ban.end_time).getTime()) {
+                        bannedUsers.set(ban.lower_nick, {
+                            endTime: new Date(ban.end_time).getTime(),
+                            reason: ban.reason
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading bans:', error);
+            }
+        }
+
+        // Save bans
+        async function saveBans() {
+            try {
+                const bansArray = Array.from(bannedUsers.entries()).map(([nick, ban]) => ({
+                    lower_nick: nick,
+                    end_time: new Date(ban.endTime).toISOString(),
+                    reason: ban.reason
+                }));
+                await supabase.from(BANS_TABLE).upsert(bansArray);
+            } catch (error) {
+                console.error('Error saving bans:', error);
+            }
+        }
+
+        // Save bot state
+        async function saveBotState(enabled) {
+            await supabase.from(BOT_SETTINGS_TABLE).upsert({ enabled });
             botEnabled = enabled;
         }
-        
+
         function addNotification(msg) {
             const timestamp = new Date().toLocaleString(getLocale());
             const notif = `${timestamp}: ${msg}`;
             notifications.push(notif);
-            notifications = notifications.slice(-50); // Keep only last 50
-            localStorage.setItem('pipelNotifications', JSON.stringify(notifications));
+            notifications = notifications.slice(-50);
+            saveUserState();
         }
-        
-        function saveBan(nick, banData) {
+
+        async function registerUser(nick) {
+            const lowerNick = nick.toLowerCase();
+            if (!registeredUsers.has(lowerNick)) {
+                await saveUserState(); // Registers via upsert
+            }
+        }
+
+        async function saveBan(nick, banData) {
             const lowerNick = nick.toLowerCase();
             bannedUsers.set(lowerNick, banData);
-            saveBans();
+            await saveBans();
         }
-        
-        function deleteBan(nick) {
+
+        async function deleteBan(nick) {
             const lowerNick = nick.toLowerCase();
             bannedUsers.delete(lowerNick);
-            saveBans();
+            await saveBans();
         }
-        
-        function saveTerminal() {
-            localStorage.setItem('pipelTerminal', terminal.innerHTML);
+
+        // Load chat messages realtime
+        function loadChatMessages() {
+            if (chatSubscription) chatSubscription.unsubscribe();
+            chatSubscription = supabase
+                .channel('chat')
+                .on('postgres_changes', { event: '*', schema: 'public', table: CHAT_MESSAGES_TABLE },
+                    (payload) => {
+                        const msg = payload.new;
+                        const msgElement = document.createElement('div');
+                        msgElement.className = 'chat-message output';
+                        msgElement.textContent = `${msg.nick}: ${msg.text}`;
+                        terminal.appendChild(msgElement);
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }
+                )
+                .subscribe();
         }
-        
+
+        function unloadChatMessages() {
+            if (chatSubscription) {
+                chatSubscription.unsubscribe();
+                chatSubscription = null;
+            }
+        }
+
+        // Online status
+        async function setOnline() {
+            await supabase.from(ONLINE_USERS_TABLE).upsert({ lower_nick: currentNick.toLowerCase(), last_seen: new Date().toISOString() });
+        }
+
+        async function setOffline() {
+            await supabase.from(ONLINE_USERS_TABLE).delete().eq('lower_nick', currentNick.toLowerCase());
+        }
+
+        // Listen for online users
+        supabase
+            .channel('online')
+            .on('postgres_changes', { event: '*', schema: 'public', table: ONLINE_USERS_TABLE },
+                () => {
+                    loadOnlineUsers();
+                }
+            )
+            .subscribe();
+
+        async function loadOnlineUsers() {
+            const { data } = await supabase
+                .from(ONLINE_USERS_TABLE)
+                .select('lower_nick')
+                .gt('last_seen', new Date(Date.now() - 30000).toISOString()); // 30s timeout
+            onlineUsers = new Set(data?.map(u => u.lower_nick) || []);
+        }
+
         function getTranslations() {
             return translations[currentLang];
         }
@@ -394,7 +509,7 @@
             console.log('Bot test: message checked');
         }
         
-        function checkBanAndExitIfNeeded() {
+        async function checkBanAndExitIfNeeded() {
             const lowerNick = currentNick.toLowerCase();
             if (bannedUsers.has(lowerNick)) {
                 const ban = bannedUsers.get(lowerNick);
@@ -412,7 +527,7 @@
                     terminal.scrollTop = terminal.scrollHeight;
                     return true; // Kicked
                 } else {
-                    deleteBan(lowerNick);
+                    await deleteBan(lowerNick);
                 }
             }
             return false; // Not kicked
@@ -452,7 +567,7 @@
                 const t = getTranslations();
                 return t.dateCmd();
             },
-            'nick': (args) => {
+            'nick': async (args) => {
                 const t = getTranslations();
                 if (args.length > 0) {
                     if (isNickSet) {
@@ -460,21 +575,21 @@
                     }
                     const oldNick = currentNick;
                     currentNick = args.join(' ');
-                    saveNick();
                     isNickSet = true;
-                    saveIsNickSet();
+                    await registerUser(currentNick);
                     updatePrompt();
                     // If was admin, check if new is admin too
                     if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
                         return `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
                     }
+                    await saveUserState();
                     return t.nickSet(currentNick);
                 } else {
                     return t.nickUsage;
                 }
             },
-            'obchat': () => {
-                loadBans(); // Ensure bans are loaded
+            'obchat': async () => {
+                await loadBans(); // Ensure bans are loaded
                 const t = getTranslations();
                 if (!isNickSet) {
                     return t.setNickFirst;
@@ -487,20 +602,22 @@
                         const endStr = new Date(ban.endTime).toLocaleString(locale);
                         return t.youBanned(endStr, ban.reason);
                     } else {
-                        deleteBan(lowerNick);
+                        await deleteBan(lowerNick);
                     }
                 }
                 inChat = true;
                 updatePrompt();
+                loadChatMessages();
+                await setOnline();
                 return t.obchatEnter;
             },
-            'tongue': (args) => {
+            'tongue': async (args) => {
                 const t = getTranslations();
                 if (args.length > 0) {
                     const lang = args[0].toLowerCase();
                     if (['en', 'ru', 'zh'].includes(lang)) {
                         currentLang = lang;
-                        saveLang();
+                        await saveUserState();
                         updateLanguage();
                         updatePrompt();
                         return `Language changed to ${lang}`;
@@ -522,7 +639,7 @@
                 });
                 return output;
             },
-            'ban': (args) => {
+            'ban': async (args) => {
                 const t = getTranslations();
                 if (!isAdmin()) {
                     return t.onlyAdmin;
@@ -541,7 +658,7 @@
                 const locale = getLocale();
                 const endStr = new Date(endTime).toLocaleString(locale);
                 const banData = { endTime, reason };
-                saveBan(nick, banData);
+                await saveBan(nick, banData);
                 const banMsg = t.banSet(nick, endStr, reason);
                 addNotification(banMsg);
                 // Check if self-banned and in chat
@@ -550,7 +667,7 @@
                 }
                 return banMsg;
             },
-            'unban': (args) => {
+            'unban': async (args) => {
                 const t = getTranslations();
                 if (!isAdmin()) {
                     return t.onlyAdmin;
@@ -564,12 +681,12 @@
                 if (!bannedUsers.has(lowerNick)) {
                     return t.notBanned(nick);
                 }
-                deleteBan(lowerNick);
+                await deleteBan(lowerNick);
                 const unbanMsg = t.unbanDone(nick, reason);
                 addNotification(unbanMsg);
                 return unbanMsg;
             },
-            'bot': (args) => {
+            'bot': async (args) => {
                 const t = getTranslations();
                 if (!isAdmin()) {
                     return t.onlyAdmin;
@@ -579,10 +696,10 @@
                 }
                 const action = args[0].toLowerCase();
                 if (action === 'on') {
-                    saveBotState(true);
+                    await saveBotState(true);
                     return t.botOn;
                 } else if (action === 'off') {
-                    saveBotState(false);
+                    await saveBotState(false);
                     return t.botOff;
                 } else {
                     return t.botInvalid;
@@ -597,48 +714,37 @@
             },
             'users_ip': () => {
                 const t = getTranslations();
-                if (!isAdmin()) {
-                    return t.onlyAdmin;
-                }
-                let users = [];
-                if (inChat) {
-                    users.push({
-                        nick: currentNick,
-                        ip: generateIP(),
-                        entryTime: Date.now() - Math.random() * 60000 // recent 1 min
-                    });
-                }
-                const numSim = Math.floor(Math.random() * 4) + 2; // 2-5 simulated
-                for (let i = 0; i < numSim; i++) {
-                    let simNick;
-                    do {
-                        simNick = 'user' + Math.floor(Math.random() * 100); // Generic users
-                    } while (users.some(u => u.nick === simNick)); // avoid duplicate
-                    users.push({
-                        nick: simNick,
-                        ip: generateIP(),
-                        entryTime: Date.now() - Math.random() * 86400000 // up to 1 day ago
-                    });
-                }
-                users.sort((a, b) => b.entryTime - a.entryTime);
                 let output = t.usersIpTitle;
-                users.forEach(u => {
-                    output += `${u.nick}\t${u.ip}\t${new Date(u.entryTime).toLocaleString(getLocale())}\n`;
+                const sortedRegs = Array.from(registeredUsers.entries()).sort((a, b) => b[1].regTime - a[1].regTime);
+                sortedRegs.forEach(([lowerNick, data]) => {
+                    const nick = data.displayNick;
+                    const status = onlineUsers.has(lowerNick) ? t.onlineStatus : t.offlineStatus;
+                    const statusClass = onlineUsers.has(lowerNick) ? 'online' : 'offline';
+                    const regStr = new Date(data.regTime).toLocaleString(getLocale());
+                    output += `${nick}\t${data.ip}\t${regStr}\t<span class="${statusClass}">${status}</span>\n`;
                 });
+                if (sortedRegs.length === 0) {
+                    output += 'No registered users yet.\n';
+                }
                 return output;
             }
         };
         
-        commandInput.addEventListener('keydown', (e) => {
+        commandInput.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
-                const commandText = commandInput.value.trim();
+                const inputValue = commandInput.value.trim();
+                if (inputValue === '') {
+                    commandInput.value = '';
+                    return;
+                }
+                const commandText = inputValue;
                 commandInput.value = '';
                 
                 let output = '';
                 
                 if (inChat) {
                     // Check ban before processing message
-                    if (checkBanAndExitIfNeeded()) {
+                    if (await checkBanAndExitIfNeeded()) {
                         return; // Kicked, don't process
                     }
                     
@@ -654,6 +760,8 @@
                             const t = getTranslations();
                             inChat = false;
                             updatePrompt();
+                            unloadChatMessages();
+                            await setOffline();
                             output = t.obchatLeave;
                         } else if (chatCmd === 'nick') {
                             // Support /nick in chat, but check if set
@@ -664,15 +772,15 @@
                                 } else {
                                     const oldNick = currentNick;
                                     currentNick = args.join(' ');
-                                    saveNick();
                                     isNickSet = true;
-                                    saveIsNickSet();
+                                    await registerUser(currentNick);
                                     updatePrompt();
                                     if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
                                         output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
                                     } else {
                                         output = t.nickSet(currentNick);
                                     }
+                                    await saveUserState();
                                 }
                             } else {
                                 output = t.nickUsage;
@@ -682,23 +790,25 @@
                             output = t.unknownChatCmd(chatCmd);
                         }
                     } else {
-                        // Chat message - no echo, just formatted message
-                        const t = getTranslations();
-                        const msgElement = document.createElement('div');
-                        msgElement.className = 'user-chat-message output';
-                        msgElement.textContent = `${currentNick}: ${commandText}`;
-                        terminal.appendChild(msgElement);
+                        // General chat message - send to Supabase
+                        const { error } = await supabase
+                            .from(CHAT_MESSAGES_TABLE)
+                            .insert({ nick: currentNick, text: commandText });
                         
-                        // Simulate showing to other users (log it)
-                        console.log(`Message from ${currentNick} visible to all users: ${commandText}`);
+                        if (error) {
+                            console.error('Error sending message:', error);
+                            const errorElement = document.createElement('div');
+                            errorElement.className = 'output';
+                            errorElement.textContent = 'Failed to send message.';
+                            terminal.appendChild(errorElement);
+                        }
                         
                         // Bot moderation
                         handleBotModeration(commandText, currentNick);
                         
                         // Check ban after moderation
-                        checkBanAndExitIfNeeded();
+                        await checkBanAndExitIfNeeded();
                         
-                        saveTerminal();
                         terminal.scrollTop = terminal.scrollHeight;
                         return; // No further processing
                     }
@@ -711,7 +821,7 @@
                     
                     const [command, ...args] = commandText.split(' ');
                     if (localCommands[command]) {
-                        output = localCommands[command](args);
+                        output = await localCommands[command](args);
                     } else {
                         output = `Unknown command: ${command}`;
                     }
@@ -720,7 +830,7 @@
                 if (output !== '') {
                     const outputElement = document.createElement('div');
                     outputElement.className = 'output';
-                    outputElement.textContent = output;
+                    outputElement.innerHTML = output; // For spans in users_ip
                     terminal.appendChild(outputElement);
                 }
                 
@@ -735,10 +845,15 @@
             commandInput.focus();
         });
         
+        // Terminal save fallback to localStorage
+        function saveTerminal() {
+            localStorage.setItem('pipelTerminal', terminal.innerHTML);
+        }
+        
         // Initial setup
-        function init() {
-            loadState();
-            loadBans();
+        async function init() {
+            await loadState();
+            await loadOnlineUsers();
             const savedTerminal = localStorage.getItem('pipelTerminal');
             if (savedTerminal) {
                 terminal.innerHTML = savedTerminal;
