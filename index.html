@@ -95,7 +95,6 @@
 </head>
 <body>
     <div id="terminal">
-        <div class="output pinned" id="help-hint">Type 'help' for available commands</div>
     </div>
     <div id="input-line">
         <span id="prompt">user@localhost:~$</span>
@@ -116,7 +115,7 @@
 - help: Show this help message
 - clear: Clear the terminal
 - date: Show current date and time
-- nick [name]: Set your nickname
+- nick [name]: Set your nickname (only once)
 - obchat: Enter general chat (type /exit to leave)
 - tongue [lang]: Change language (en, ru, zh)
 - notif: Show notifications`,
@@ -128,6 +127,7 @@
 - prov: Check bot status`,
                 dateCmd: () => new Date().toString(),
                 nickSet: (nick) => `Nickname set to ${nick}`,
+                nickAlreadySet: 'Nickname can only be set once.',
                 nickUsage: 'Usage: nick <name>',
                 setNickFirst: 'Please set a nickname first using "nick <name>".',
                 obchatEnter: 'Entered general chat. Type messages to chat. Use /exit to leave.',
@@ -158,7 +158,7 @@
 - help: Показать это сообщение помощи
 - clear: Очистить терминал
 - date: Показать текущую дату и время
-- nick [имя]: Установить ваш никнейм
+- nick [имя]: Установить ваш никнейм (только один раз)
 - obchat: Войти в общий чат (введите /exit для выхода)
 - tongue [lang]: Сменить язык (en, ru, zh)
 - notif: Показать уведомления`,
@@ -170,6 +170,7 @@
 - prov: Проверить статус бота`,
                 dateCmd: () => new Date().toLocaleString('ru-RU'),
                 nickSet: (nick) => `Никнейм установлен: ${nick}`,
+                nickAlreadySet: 'Никнейм можно установить только один раз.',
                 nickUsage: 'Использование: nick <имя>',
                 setNickFirst: 'Сначала установите никнейм с помощью "nick <имя>".',
                 obchatEnter: 'Вошли в общий чат. Пишите сообщения для общения. Используйте /exit для выхода.',
@@ -200,7 +201,7 @@
 - help: 显示此帮助消息
 - clear: 清空终端
 - date: 显示当前日期和时间
-- nick [name]: 设置您的昵称
+- nick [name]: 设置您的昵称 (仅一次)
 - obchat: 进入通用聊天 (输入 /exit 退出)
 - tongue [lang]: 更改语言 (en, ru, zh)
 - notif: 显示通知`,
@@ -212,6 +213,7 @@
 - prov: 检查 bot 状态`,
                 dateCmd: () => new Date().toLocaleString('zh-CN'),
                 nickSet: (nick) => `昵称设置为 ${nick}`,
+                nickAlreadySet: '昵称只能设置一次。',
                 nickUsage: '用法: nick <name>',
                 setNickFirst: '请先使用 "nick <name>" 设置昵称。',
                 obchatEnter: '已进入通用聊天。输入消息聊天。使用 /exit 退出。',
@@ -242,11 +244,11 @@
             const t = translations[currentLang];
             const helpHintEl = document.getElementById('help-hint');
             if (helpHintEl) helpHintEl.textContent = t.helpHint;
-            // Update prompt if needed, but it's dynamic
         }
         
         // Chat simulation
         let currentNick = 'user';
+        let isNickSet = false;
         let inChat = false;
         let bannedUsers = new Map();
         let botEnabled = false;
@@ -255,7 +257,10 @@
         // Persistence - all in localStorage
         function loadState() {
             const savedNick = localStorage.getItem('pipelNick');
-            if (savedNick) currentNick = savedNick;
+            if (savedNick && savedNick !== 'user') {
+                currentNick = savedNick;
+                isNickSet = true;
+            }
             const savedLang = localStorage.getItem('pipelLang');
             if (savedLang && translations[savedLang]) currentLang = savedLang;
             
@@ -272,10 +277,21 @@
                     notifications = [];
                 }
             }
+
+            const savedIsNickSet = localStorage.getItem('pipelIsNickSet');
+            if (savedIsNickSet !== null) {
+                isNickSet = JSON.parse(savedIsNickSet);
+            } else if (savedNick && savedNick !== 'user') {
+                isNickSet = true;
+            }
         }
         
         function saveNick() {
             localStorage.setItem('pipelNick', currentNick);
+        }
+        
+        function saveIsNickSet() {
+            localStorage.setItem('pipelIsNickSet', JSON.stringify(isNickSet));
         }
         
         function saveLang() {
@@ -328,6 +344,10 @@
             const lowerNick = nick.toLowerCase();
             bannedUsers.delete(lowerNick);
             saveBans();
+        }
+        
+        function saveTerminal() {
+            localStorage.setItem('pipelTerminal', terminal.innerHTML);
         }
         
         function getTranslations() {
@@ -388,6 +408,7 @@
                     outputElement.className = 'output';
                     outputElement.textContent = t.youBanned(endStr, ban.reason);
                     terminal.appendChild(outputElement);
+                    saveTerminal();
                     terminal.scrollTop = terminal.scrollHeight;
                     return true; // Kicked
                 } else {
@@ -424,6 +445,7 @@
                 inChat = false;
                 updatePrompt();
                 updateLanguage();
+                saveTerminal();
                 return '';
             },
             'date': () => {
@@ -433,9 +455,14 @@
             'nick': (args) => {
                 const t = getTranslations();
                 if (args.length > 0) {
+                    if (isNickSet) {
+                        return t.nickAlreadySet;
+                    }
                     const oldNick = currentNick;
                     currentNick = args.join(' ');
                     saveNick();
+                    isNickSet = true;
+                    saveIsNickSet();
                     updatePrompt();
                     // If was admin, check if new is admin too
                     if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
@@ -449,12 +476,8 @@
             'obchat': () => {
                 loadBans(); // Ensure bans are loaded
                 const t = getTranslations();
-                if (currentNick === 'user') {
-                    // Auto-set a default nick if not set
-                    currentNick = 'guest_' + Math.floor(Math.random() * 1000);
-                    saveNick();
-                    updatePrompt();
-                    return `${t.nickSet(currentNick)}\n${t.obchatEnter}`;
+                if (!isNickSet) {
+                    return t.setNickFirst;
                 }
                 const lowerNick = currentNick.toLowerCase();
                 if (bannedUsers.has(lowerNick)) {
@@ -633,17 +656,23 @@
                             updatePrompt();
                             output = t.obchatLeave;
                         } else if (chatCmd === 'nick') {
-                            // Support /nick in chat
+                            // Support /nick in chat, but check if set
                             const t = getTranslations();
                             if (args.length > 0) {
-                                const oldNick = currentNick;
-                                currentNick = args.join(' ');
-                                saveNick();
-                                updatePrompt();
-                                if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
-                                    output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
+                                if (isNickSet) {
+                                    output = t.nickAlreadySet;
                                 } else {
-                                    output = t.nickSet(currentNick);
+                                    const oldNick = currentNick;
+                                    currentNick = args.join(' ');
+                                    saveNick();
+                                    isNickSet = true;
+                                    saveIsNickSet();
+                                    updatePrompt();
+                                    if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
+                                        output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
+                                    } else {
+                                        output = t.nickSet(currentNick);
+                                    }
                                 }
                             } else {
                                 output = t.nickUsage;
@@ -660,12 +689,16 @@
                         msgElement.textContent = `${currentNick}: ${commandText}`;
                         terminal.appendChild(msgElement);
                         
+                        // Simulate showing to other users (log it)
+                        console.log(`Message from ${currentNick} visible to all users: ${commandText}`);
+                        
                         // Bot moderation
                         handleBotModeration(commandText, currentNick);
                         
                         // Check ban after moderation
                         checkBanAndExitIfNeeded();
                         
+                        saveTerminal();
                         terminal.scrollTop = terminal.scrollHeight;
                         return; // No further processing
                     }
@@ -691,6 +724,7 @@
                     terminal.appendChild(outputElement);
                 }
                 
+                saveTerminal();
                 // Scroll to bottom
                 terminal.scrollTop = terminal.scrollHeight;
             }
@@ -705,6 +739,17 @@
         function init() {
             loadState();
             loadBans();
+            const savedTerminal = localStorage.getItem('pipelTerminal');
+            if (savedTerminal) {
+                terminal.innerHTML = savedTerminal;
+            } else {
+                const pinned = document.createElement('div');
+                pinned.className = 'output pinned';
+                pinned.id = 'help-hint';
+                pinned.textContent = translations[currentLang].helpHint;
+                terminal.appendChild(pinned);
+                saveTerminal();
+            }
             updateLanguage();
             updatePrompt();
             commandInput.focus(); // Ensure focus on mobile
