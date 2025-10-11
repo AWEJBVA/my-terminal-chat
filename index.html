@@ -16,15 +16,17 @@
             color: #fff;
             font-family: 'CustomMono', 'Courier New', monospace;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            font-size: 14px;
         }
         #terminal {
             flex: 1;
             overflow-y: auto;
+            padding-right: 10px;
         }
         #input-line {
             display: flex;
@@ -33,14 +35,15 @@
         }
         #prompt {
             white-space: nowrap;
-            margin-right: 10px;
+            margin-right: 5px;
+            font-size: 14px;
         }
         #command-input {
             background-color: transparent;
             border: none;
             color: #fff;
             font-family: 'CustomMono', 'Courier New', monospace;
-            font-size: 16px;
+            font-size: 14px;
             width: 100%;
             outline: none;
         }
@@ -61,12 +64,38 @@
             margin: 2px 0;
             color: #0ff; /* Голубой для сообщений пользователя */
         }
+        .notification {
+            margin: 2px 0;
+            color: #f0f; /* Фиолетовый для уведомлений */
+        }
+        .pinned {
+            background-color: #111;
+            border: 1px solid #333;
+            padding: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .bot-ban {
+            margin: 2px 0;
+            color: #f00; /* Красный для бана бота */
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 5px;
+                font-size: 12px;
+            }
+            #prompt, #command-input {
+                font-size: 12px;
+            }
+            #terminal {
+                padding-right: 5px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="terminal">
-        <div class="output" id="welcome"></div>
-        <div class="output" id="help-hint">Type 'help' for available commands</div>
+        <div class="output pinned" id="help-hint">Type 'help' for available commands</div>
     </div>
     <div id="input-line">
         <span id="prompt">user@localhost:~$</span>
@@ -82,7 +111,6 @@
         let currentLang = 'en';
         const translations = {
             en: {
-                welcome: '***',
                 helpHint: "Type 'help' for available commands",
                 help: `Available commands:
 - help: Show this help message
@@ -90,10 +118,14 @@
 - date: Show current date and time
 - nick [name]: Set your nickname
 - obchat: Enter general chat (type /exit to leave)
-- tongue [lang]: Change language (en, ru, zh)`,
+- tongue [lang]: Change language (en, ru, zh)
+- notif: Show notifications`,
                 adminHelp: `\nAdmin commands (nk.exe2089 only):
 - ban [nick] [time] [reason]: Ban a user from entering chat
-- users_ip: Show users in general chat and recent logins with IP, nick, and entry time`,
+- unban [nick] [reason]: Unban a user from chat
+- users_ip: Show users in general chat and recent logins with IP, nick, and entry time
+- bot [on|off]: Toggle moderation bot in chat
+- prov: Check bot status`,
                 dateCmd: () => new Date().toString(),
                 nickSet: (nick) => `Nickname set to ${nick}`,
                 nickUsage: 'Usage: nick <name>',
@@ -107,21 +139,20 @@
                 banUsage: 'Usage: ban <nick> <time> [reason]\nTime format: 30s, 50m, 78h, 79d (or 30с, 50м, 78ч, 79д)',
                 banSet: (nick, end, reason) => `User ${nick} has been banned until ${end} for: ${reason}`,
                 youBanned: (end, reason) => `You are banned from entering chat until ${end} for: ${reason}`,
+                unbanUsage: 'Usage: unban <nick> [reason]',
+                unbanDone: (nick, reason) => `User ${nick} has been unbanned. Reason: ${reason}`,
+                notBanned: (nick) => `User ${nick} is not banned.`,
                 usersIpTitle: 'Users IP List\nNick\tIP\tEntry Time\n',
-                chatUsers: ['Alice', 'Bob', 'Charlie', 'Dana', 'Eve'],
-                chatMessages: [
-                    'Hello everyone!',
-                    'How are you?',
-                    'Interesting topic.',
-                    'I agree!',
-                    'Tell me more.',
-                    'Haha, cool!',
-                    'Disagree, why?',
-                    'Thanks for the info.'
-                ]
+                botOn: 'Moderation bot enabled in chat.',
+                botOff: 'Moderation bot disabled in chat.',
+                botStatusOn: 'Bot is ON.',
+                botStatusOff: 'Bot is OFF.',
+                botInvalid: 'Usage: bot on|off',
+                botBanMsg: (nick) => `BOT: ${nick} banned for 5 minutes for insults to relatives.`,
+                notifTitle: 'Notifications:\n',
+                notifEmpty: 'No notifications.'
             },
             ru: {
-                welcome: '***',
                 helpHint: "Введите 'help' для списка команд",
                 help: `Доступные команды:
 - help: Показать это сообщение помощи
@@ -129,10 +160,14 @@
 - date: Показать текущую дату и время
 - nick [имя]: Установить ваш никнейм
 - obchat: Войти в общий чат (введите /exit для выхода)
-- tongue [lang]: Сменить язык (en, ru, zh)`,
+- tongue [lang]: Сменить язык (en, ru, zh)
+- notif: Показать уведомления`,
                 adminHelp: `\nКоманды администратора (только для nk.exe2089):
 - ban [ник] [время] [причина]: Забанить пользователя от входа в чат
-- users_ip: Показать пользователей в общем чате и недавние входы с IP, ником и временем входа`,
+- unban [ник] [причина]: Разбанить пользователя из чата
+- users_ip: Показать пользователей в общем чате и недавние входы с IP, ником и временем входа
+- bot [on|off]: Включить/выключить модерационного бота в чате
+- prov: Проверить статус бота`,
                 dateCmd: () => new Date().toLocaleString('ru-RU'),
                 nickSet: (nick) => `Никнейм установлен: ${nick}`,
                 nickUsage: 'Использование: nick <имя>',
@@ -146,21 +181,20 @@
                 banUsage: 'Использование: ban <ник> <время> [причина]\nФормат времени: 30s, 50m, 78h, 79d (или 30с, 50м, 78ч, 79д)',
                 banSet: (nick, end, reason) => `Пользователь ${nick} забанен до ${end} за: ${reason}`,
                 youBanned: (end, reason) => `Вы забанены от входа в чат до ${end} за: ${reason}`,
+                unbanUsage: 'Использование: unban <ник> [причина разбана]',
+                unbanDone: (nick, reason) => `Пользователь ${nick} разбанен. Причина: ${reason}`,
+                notBanned: (nick) => `Пользователь ${nick} не забанен.`,
                 usersIpTitle: 'Список IP пользователей\nНик\tIP\tВремя входа\n',
-                chatUsers: ['Алиса', 'Боб', 'Чарли', 'Дана', 'Ева'],
-                chatMessages: [
-                    'Привет всем!',
-                    'Как дела?',
-                    'Интересная тема.',
-                    'Согласен!',
-                    'Расскажи больше.',
-                    'Ха-ха, круто!',
-                    'Не согласен, почему?',
-                    'Спасибо за инфу.'
-                ]
+                botOn: 'Модерационный бот включен в чате.',
+                botOff: 'Модерационный бот выключен в чате.',
+                botStatusOn: 'Бот включен.',
+                botStatusOff: 'Бот выключен.',
+                botInvalid: 'Использование: bot on|off',
+                botBanMsg: (nick) => `BOT: ${nick} забанен на 5 минут за оскорбления родных.`,
+                notifTitle: 'Уведомления:\n',
+                notifEmpty: 'Нет уведомлений.'
             },
             zh: {
-                welcome: '***',
                 helpHint: "输入 'help' 查看可用命令",
                 help: `可用命令:
 - help: 显示此帮助消息
@@ -168,10 +202,14 @@
 - date: 显示当前日期和时间
 - nick [name]: 设置您的昵称
 - obchat: 进入通用聊天 (输入 /exit 退出)
-- tongue [lang]: 更改语言 (en, ru, zh)`,
+- tongue [lang]: 更改语言 (en, ru, zh)
+- notif: 显示通知`,
                 adminHelp: `\n管理员命令 (仅 nk.exe2089):
 - ban [nick] [time] [reason]: 禁止用户进入聊天
-- users_ip: 显示通用聊天中的用户和最近登录的 IP、昵称和进入时间`,
+- unban [nick] [reason]: 解除用户聊天禁令
+- users_ip: 显示通用聊天中的用户和最近登录的 IP、昵称和进入时间
+- bot [on|off]: 切换聊天中的 moderation bot
+- prov: 检查 bot 状态`,
                 dateCmd: () => new Date().toLocaleString('zh-CN'),
                 nickSet: (nick) => `昵称设置为 ${nick}`,
                 nickUsage: '用法: nick <name>',
@@ -185,25 +223,23 @@
                 banUsage: '用法: ban <nick> <time> [reason]\n时间格式: 30s, 50m, 78h, 79d (或 30с, 50м, 78ч, 79д)',
                 banSet: (nick, end, reason) => `用户 ${nick} 被禁止直到 ${end} 原因: ${reason}`,
                 youBanned: (end, reason) => `您被禁止进入聊天直到 ${end} 原因: ${reason}`,
+                unbanUsage: '用法: unban <nick> [reason]',
+                unbanDone: (nick, reason) => `用户 ${nick} 已解除禁令。原因: ${reason}`,
+                notBanned: (nick) => `用户 ${nick} 未被禁止。`,
                 usersIpTitle: '用户 IP 列表\n昵称\tIP\t进入时间\n',
-                chatUsers: ['爱丽丝', '鲍勃', '查理', '达娜', '夏娃'],
-                chatMessages: [
-                    '大家好！',
-                    '你好吗？',
-                    '有趣的话题。',
-                    '我同意！',
-                    '多说说。',
-                    '哈哈，酷！',
-                    '不同意，为什么？',
-                    '谢谢信息。'
-                ]
+                botOn: '聊天 moderation bot 已启用。',
+                botOff: '聊天 moderation bot 已禁用。',
+                botStatusOn: 'Bot 已开启。',
+                botStatusOff: 'Bot 已关闭。',
+                botInvalid: '用法: bot on|off',
+                botBanMsg: (nick) => `BOT: ${nick} 被禁 5 分钟因 insults to relatives。`,
+                notifTitle: '通知:\n',
+                notifEmpty: '无通知。'
             }
         };
         
         function updateLanguage() {
             const t = translations[currentLang];
-            const welcomeEl = document.getElementById('welcome');
-            if (welcomeEl) welcomeEl.textContent = t.welcome;
             const helpHintEl = document.getElementById('help-hint');
             if (helpHintEl) helpHintEl.textContent = t.helpHint;
             // Update prompt if needed, but it's dynamic
@@ -212,8 +248,87 @@
         // Chat simulation
         let currentNick = 'user';
         let inChat = false;
-        let t; // Current translations
         let bannedUsers = new Map();
+        let botEnabled = false;
+        let notifications = [];
+        
+        // Persistence - all in localStorage
+        function loadState() {
+            const savedNick = localStorage.getItem('pipelNick');
+            if (savedNick) currentNick = savedNick;
+            const savedLang = localStorage.getItem('pipelLang');
+            if (savedLang && translations[savedLang]) currentLang = savedLang;
+            
+            const savedBot = localStorage.getItem('pipelBotEnabled');
+            if (savedBot !== null) botEnabled = JSON.parse(savedBot);
+            
+            const savedNotifs = localStorage.getItem('pipelNotifications');
+            if (savedNotifs) {
+                try {
+                    notifications = JSON.parse(savedNotifs);
+                    notifications = notifications.slice(-50); // Keep only last 50
+                } catch (e) {
+                    console.error('Failed to load notifications:', e);
+                    notifications = [];
+                }
+            }
+        }
+        
+        function saveNick() {
+            localStorage.setItem('pipelNick', currentNick);
+        }
+        
+        function saveLang() {
+            localStorage.setItem('pipelLang', currentLang);
+        }
+        
+        function loadBans() {
+            const savedBans = localStorage.getItem('pipelBans');
+            if (savedBans) {
+                try {
+                    const bans = JSON.parse(savedBans);
+                    bannedUsers = new Map(bans.map(([k, v]) => [k, v]));
+                    for (const [nick, ban] of bannedUsers.entries()) {
+                        if (Date.now() >= ban.endTime) {
+                            bannedUsers.delete(nick);
+                        }
+                    }
+                    saveBans(); // Update storage
+                } catch (e) {
+                    console.error('Failed to load bans:', e);
+                }
+            }
+        }
+        
+        function saveBans() {
+            const bansArray = Array.from(bannedUsers.entries());
+            localStorage.setItem('pipelBans', JSON.stringify(bansArray));
+        }
+        
+        function saveBotState(enabled) {
+            localStorage.setItem('pipelBotEnabled', JSON.stringify(enabled));
+            botEnabled = enabled;
+        }
+        
+        function addNotification(msg) {
+            const timestamp = new Date().toLocaleString(getLocale());
+            const notif = `${timestamp}: ${msg}`;
+            notifications.push(notif);
+            notifications = notifications.slice(-50); // Keep only last 50
+            localStorage.setItem('pipelNotifications', JSON.stringify(notifications));
+        }
+        
+        function saveBan(nick, banData) {
+            const lowerNick = nick.toLowerCase();
+            bannedUsers.set(lowerNick, banData);
+            saveBans();
+        }
+        
+        function deleteBan(nick) {
+            const lowerNick = nick.toLowerCase();
+            bannedUsers.delete(lowerNick);
+            saveBans();
+        }
         
         function getTranslations() {
             return translations[currentLang];
@@ -254,30 +369,37 @@
             return currentNick === 'nk.exe2089';
         }
         
-        function generateRandomMessage() {
-            t = getTranslations();
-            const user = t.chatUsers[Math.floor(Math.random() * t.chatUsers.length)];
-            const msg = t.chatMessages[Math.floor(Math.random() * t.chatMessages.length)];
-            return `${user}: ${msg}`;
+        function handleBotModeration(message, senderNick) {
+            // Test mode - no action for now
+            console.log('Bot test: message checked');
         }
         
-        function simulateChatResponses() {
-            t = getTranslations();
-            const numResponses = Math.floor(Math.random() * 3) + 1; // 1-3 ответа
-            setTimeout(() => {
-                for (let i = 0; i < numResponses; i++) {
-                    const msgElement = document.createElement('div');
-                    msgElement.className = 'chat-message output';
-                    msgElement.textContent = generateRandomMessage();
-                    terminal.appendChild(msgElement);
+        function checkBanAndExitIfNeeded() {
+            const lowerNick = currentNick.toLowerCase();
+            if (bannedUsers.has(lowerNick)) {
+                const ban = bannedUsers.get(lowerNick);
+                if (Date.now() < ban.endTime) {
+                    inChat = false;
+                    updatePrompt();
+                    const t = getTranslations();
+                    const locale = getLocale();
+                    const endStr = new Date(ban.endTime).toLocaleString(locale);
+                    const outputElement = document.createElement('div');
+                    outputElement.className = 'output';
+                    outputElement.textContent = t.youBanned(endStr, ban.reason);
+                    terminal.appendChild(outputElement);
+                    terminal.scrollTop = terminal.scrollHeight;
+                    return true; // Kicked
+                } else {
+                    deleteBan(lowerNick);
                 }
-                terminal.scrollTop = terminal.scrollHeight;
-            }, 500 + Math.random() * 1000); // Задержка 0.5-1.5 сек
+            }
+            return false; // Not kicked
         }
         
         // Local commands
         function updatePrompt() {
-            t = getTranslations();
+            const t = getTranslations();
             if (inChat) {
                 prompt.textContent = `${currentNick}@obchat: `;
             } else {
@@ -287,7 +409,7 @@
         
         const localCommands = {
             'help': () => {
-                t = getTranslations();
+                const t = getTranslations();
                 let helpText = t.help;
                 if (isAdmin()) {
                     helpText += t.adminHelp;
@@ -295,32 +417,44 @@
                 return helpText;
             },
             'clear': (args) => {
-                // Clear everything and reset
-                terminal.innerHTML = `<div class="output" id="welcome">${getTranslations().welcome}</div>
-                                      <div class="output" id="help-hint">${getTranslations().helpHint}</div>`;
+                // Clear outputs but keep pinned
+                const pinned = terminal.querySelectorAll('.pinned');
+                terminal.innerHTML = '';
+                pinned.forEach(p => terminal.appendChild(p));
                 inChat = false;
                 updatePrompt();
                 updateLanguage();
                 return '';
             },
             'date': () => {
-                t = getTranslations();
+                const t = getTranslations();
                 return t.dateCmd();
             },
             'nick': (args) => {
-                t = getTranslations();
+                const t = getTranslations();
                 if (args.length > 0) {
+                    const oldNick = currentNick;
                     currentNick = args.join(' ');
+                    saveNick();
                     updatePrompt();
+                    // If was admin, check if new is admin too
+                    if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
+                        return `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
+                    }
                     return t.nickSet(currentNick);
                 } else {
                     return t.nickUsage;
                 }
             },
             'obchat': () => {
-                t = getTranslations();
+                loadBans(); // Ensure bans are loaded
+                const t = getTranslations();
                 if (currentNick === 'user') {
-                    return t.setNickFirst;
+                    // Auto-set a default nick if not set
+                    currentNick = 'guest_' + Math.floor(Math.random() * 1000);
+                    saveNick();
+                    updatePrompt();
+                    return `${t.nickSet(currentNick)}\n${t.obchatEnter}`;
                 }
                 const lowerNick = currentNick.toLowerCase();
                 if (bannedUsers.has(lowerNick)) {
@@ -330,7 +464,7 @@
                         const endStr = new Date(ban.endTime).toLocaleString(locale);
                         return t.youBanned(endStr, ban.reason);
                     } else {
-                        bannedUsers.delete(lowerNick);
+                        deleteBan(lowerNick);
                     }
                 }
                 inChat = true;
@@ -338,11 +472,12 @@
                 return t.obchatEnter;
             },
             'tongue': (args) => {
-                t = getTranslations();
+                const t = getTranslations();
                 if (args.length > 0) {
                     const lang = args[0].toLowerCase();
                     if (['en', 'ru', 'zh'].includes(lang)) {
                         currentLang = lang;
+                        saveLang();
                         updateLanguage();
                         updatePrompt();
                         return `Language changed to ${lang}`;
@@ -353,8 +488,19 @@
                     return t.tongueUsage;
                 }
             },
+            'notif': () => {
+                const t = getTranslations();
+                if (notifications.length === 0) {
+                    return t.notifEmpty;
+                }
+                let output = t.notifTitle;
+                notifications.forEach(n => {
+                    output += `${n}\n`;
+                });
+                return output;
+            },
             'ban': (args) => {
-                t = getTranslations();
+                const t = getTranslations();
                 if (!isAdmin()) {
                     return t.onlyAdmin;
                 }
@@ -371,11 +517,63 @@
                 const endTime = Date.now() + duration;
                 const locale = getLocale();
                 const endStr = new Date(endTime).toLocaleString(locale);
-                bannedUsers.set(nick.toLowerCase(), { endTime, reason });
-                return t.banSet(nick, endStr, reason);
+                const banData = { endTime, reason };
+                saveBan(nick, banData);
+                const banMsg = t.banSet(nick, endStr, reason);
+                addNotification(banMsg);
+                // Check if self-banned and in chat
+                if (nick.toLowerCase() === currentNick.toLowerCase() && inChat) {
+                    checkBanAndExitIfNeeded();
+                }
+                return banMsg;
+            },
+            'unban': (args) => {
+                const t = getTranslations();
+                if (!isAdmin()) {
+                    return t.onlyAdmin;
+                }
+                if (args.length < 1) {
+                    return t.unbanUsage;
+                }
+                const nick = args[0];
+                const reason = args.slice(1).join(' ') || 'No reason provided';
+                const lowerNick = nick.toLowerCase();
+                if (!bannedUsers.has(lowerNick)) {
+                    return t.notBanned(nick);
+                }
+                deleteBan(lowerNick);
+                const unbanMsg = t.unbanDone(nick, reason);
+                addNotification(unbanMsg);
+                return unbanMsg;
+            },
+            'bot': (args) => {
+                const t = getTranslations();
+                if (!isAdmin()) {
+                    return t.onlyAdmin;
+                }
+                if (args.length < 1) {
+                    return t.botInvalid;
+                }
+                const action = args[0].toLowerCase();
+                if (action === 'on') {
+                    saveBotState(true);
+                    return t.botOn;
+                } else if (action === 'off') {
+                    saveBotState(false);
+                    return t.botOff;
+                } else {
+                    return t.botInvalid;
+                }
+            },
+            'prov': () => {
+                const t = getTranslations();
+                if (!isAdmin()) {
+                    return t.onlyAdmin;
+                }
+                return botEnabled ? t.botStatusOn : t.botStatusOff;
             },
             'users_ip': () => {
-                t = getTranslations();
+                const t = getTranslations();
                 if (!isAdmin()) {
                     return t.onlyAdmin;
                 }
@@ -391,7 +589,7 @@
                 for (let i = 0; i < numSim; i++) {
                     let simNick;
                     do {
-                        simNick = t.chatUsers[Math.floor(Math.random() * t.chatUsers.length)];
+                        simNick = 'user' + Math.floor(Math.random() * 100); // Generic users
                     } while (users.some(u => u.nick === simNick)); // avoid duplicate
                     users.push({
                         nick: simNick,
@@ -408,7 +606,7 @@
             }
         };
         
-        commandInput.addEventListener('keydown', async (e) => {
+        commandInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const commandText = commandInput.value.trim();
                 commandInput.value = '';
@@ -416,6 +614,11 @@
                 let output = '';
                 
                 if (inChat) {
+                    // Check ban before processing message
+                    if (checkBanAndExitIfNeeded()) {
+                        return; // Kicked, don't process
+                    }
+                    
                     if (commandText.startsWith('/')) {
                         // Echo chat commands as regular command
                         const inputElement = document.createElement('div');
@@ -425,22 +628,44 @@
                         
                         const [chatCmd, ...args] = commandText.slice(1).split(' ');
                         if (chatCmd === 'exit') {
-                            t = getTranslations();
+                            const t = getTranslations();
                             inChat = false;
                             updatePrompt();
                             output = t.obchatLeave;
+                        } else if (chatCmd === 'nick') {
+                            // Support /nick in chat
+                            const t = getTranslations();
+                            if (args.length > 0) {
+                                const oldNick = currentNick;
+                                currentNick = args.join(' ');
+                                saveNick();
+                                updatePrompt();
+                                if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
+                                    output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
+                                } else {
+                                    output = t.nickSet(currentNick);
+                                }
+                            } else {
+                                output = t.nickUsage;
+                            }
                         } else {
-                            t = getTranslations();
+                            const t = getTranslations();
                             output = t.unknownChatCmd(chatCmd);
                         }
                     } else {
                         // Chat message - no echo, just formatted message
-                        t = getTranslations();
+                        const t = getTranslations();
                         const msgElement = document.createElement('div');
                         msgElement.className = 'user-chat-message output';
                         msgElement.textContent = `${currentNick}: ${commandText}`;
                         terminal.appendChild(msgElement);
-                        simulateChatResponses();
+                        
+                        // Bot moderation
+                        handleBotModeration(commandText, currentNick);
+                        
+                        // Check ban after moderation
+                        checkBanAndExitIfNeeded();
+                        
                         terminal.scrollTop = terminal.scrollHeight;
                         return; // No further processing
                     }
@@ -477,8 +702,14 @@
         });
         
         // Initial setup
-        updateLanguage();
-        updatePrompt();
+        function init() {
+            loadState();
+            loadBans();
+            updateLanguage();
+            updatePrompt();
+            commandInput.focus(); // Ensure focus on mobile
+        }
+        init();
     </script>
 </body>
-</html>
+    </html>
