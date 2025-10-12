@@ -107,16 +107,23 @@
         <input type="text" id="command-input" autofocus>
     </div>
 
-    <!-- Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
 
     <script>
-        // Supabase config - with your provided keys
-        const SUPABASE_URL = 'https://dbqngtlzgwvlyjqraolu.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRicW5ndGx6Z3d2bHlqcXJhb2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxOTU4NjksImV4cCI6MjA3NTc3MTg2OX0.XFVXVCrTzm91TkjENo9swhOSjvxl9I1rVW8evogBu_Y';
-
-        // Initialize Supabase
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Firebase config
+        const firebaseConfig = {
+          apiKey: "AIzaSyDBBm7_VBqW0smF-7ecP1vaeTnMY68lc_w",
+          authDomain: "my-terminal-chat-ecd4e.firebaseapp.com",
+          projectId: "my-terminal-chat-ecd4e",
+          storageBucket: "my-terminal-chat-ecd4e.firebasestorage.app",
+          messagingSenderId: "401735371021",
+          appId: "1:401735371021:web:81b1cf519130febee78844",
+          measurementId: "G-SJ6VNQDS9M"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
         const terminal = document.getElementById('terminal');
         const commandInput = document.getElementById('command-input');
@@ -148,6 +155,7 @@
                 setNickFirst: 'Please set a nickname first using "nick <name>".',
                 obchatEnter: 'Entered general chat. Type messages to chat. Use /exit to leave.',
                 obchatLeave: 'Left general chat.',
+                chatFull: 'Chat is full. Maximum 100 users.',
                 unknownChatCmd: (cmd) => `Unknown chat command: /${cmd}`,
                 unknownLang: (lang) => `Unknown language: ${lang}. Available: en, ru, zh`,
                 tongueUsage: 'Usage: tongue <lang> (en, ru, zh)',
@@ -193,6 +201,7 @@
                 setNickFirst: 'Сначала установите никнейм с помощью "nick <имя>".',
                 obchatEnter: 'Вошли в общий чат. Пишите сообщения для общения. Используйте /exit для выхода.',
                 obchatLeave: 'Вышли из общего чата.',
+                chatFull: 'Чат заполнен. Максимум 100 пользователей.',
                 unknownChatCmd: (cmd) => `Неизвестная команда чата: /${cmd}`,
                 unknownLang: (lang) => `Неизвестный язык: ${lang}. Доступны: en, ru, zh`,
                 tongueUsage: 'Использование: tongue <lang> (en, ru, zh)',
@@ -238,6 +247,7 @@
                 setNickFirst: '请先使用 "nick <name>" 设置昵称。',
                 obchatEnter: '已进入通用聊天。输入消息聊天。使用 /exit 退出。',
                 obchatLeave: '已离开通用聊天。',
+                chatFull: '聊天已满。最多 100 用户。',
                 unknownChatCmd: (cmd) => `未知聊天命令: /${cmd}`,
                 unknownLang: (lang) => `未知语言: ${lang}。可用: en, ru, zh`,
                 tongueUsage: '用法: tongue <lang> (en, ru, zh)',
@@ -276,26 +286,24 @@
         let botEnabled = false;
         let notifications = [];
         let registeredUsers = new Map(); // lowerNick -> {displayNick, ip, regTime}
-        let chatSubscription = null;
+        let chatListener = null;
         let onlineUsers = new Set();
+        let onlineRef = null;
+        let onlineListener = null;
         
-        // Supabase tables
-        const USERS_TABLE = 'users';
-        const BANS_TABLE = 'bans';
-        const CHAT_MESSAGES_TABLE = 'chat_messages';
-        const BOT_SETTINGS_TABLE = 'bot_settings';
-        const ONLINE_USERS_TABLE = 'online_users';
+        // Firebase paths
+        const USERS_PATH = 'users';
+        const BANS_PATH = 'bans';
+        const CHAT_MESSAGES_PATH = 'chat_messages';
+        const BOT_SETTINGS_PATH = 'bot_settings';
+        const ONLINE_USERS_PATH = 'online_users';
         
-        // Load state from Supabase
+        // Load state from Firebase
         async function loadState() {
             try {
                 // Load user data
-                const { data: userData } = await supabase
-                    .from(USERS_TABLE)
-                    .select('*')
-                    .eq('lower_nick', currentNick.toLowerCase())
-                    .single();
-
+                const userSnapshot = await db.ref(`${USERS_PATH}/${currentNick.toLowerCase()}`).once('value');
+                const userData = userSnapshot.val();
                 if (userData) {
                     currentLang = userData.lang || 'en';
                     isNickSet = userData.is_nick_set || false;
@@ -304,24 +312,26 @@
                 }
 
                 // Load bot enabled
-                const { data: botData } = await supabase
-                    .from(BOT_SETTINGS_TABLE)
-                    .select('enabled')
-                    .single();
+                const botSnapshot = await db.ref(BOT_SETTINGS_PATH).once('value');
+                const botData = botSnapshot.val();
                 botEnabled = botData?.enabled || false;
 
                 // Load bans
                 await loadBans();
 
                 // Load registered users
-                const { data: regsData } = await supabase.from(USERS_TABLE).select('*');
-                regsData?.forEach(user => {
-                    registeredUsers.set(user.lower_nick, {
-                        displayNick: user.display_nick,
-                        ip: user.ip,
-                        regTime: new Date(user.reg_time).getTime()
+                const regsSnapshot = await db.ref(USERS_PATH).once('value');
+                if (regsSnapshot.exists()) {
+                    regsSnapshot.forEach((childSnapshot) => {
+                        const user = childSnapshot.val();
+                        const key = childSnapshot.key;
+                        registeredUsers.set(key, {
+                            displayNick: user.display_nick,
+                            ip: user.ip,
+                            regTime: new Date(user.reg_time).getTime()
+                        });
                     });
-                });
+                }
 
                 updateLanguage();
             } catch (error) {
@@ -332,17 +342,14 @@
         // Save user state
         async function saveUserState() {
             try {
-                await supabase
-                    .from(USERS_TABLE)
-                    .upsert({
-                        lower_nick: currentNick.toLowerCase(),
-                        display_nick: currentNick,
-                        lang: currentLang,
-                        is_nick_set: isNickSet,
-                        notifications: notifications,
-                        ip: generateIP(),
-                        reg_time: new Date().toISOString()
-                    });
+                await db.ref(`${USERS_PATH}/${currentNick.toLowerCase()}`).set({
+                    display_nick: currentNick,
+                    lang: currentLang,
+                    is_nick_set: isNickSet,
+                    notifications: notifications,
+                    ip: generateIP(),
+                    reg_time: new Date().toISOString()
+                });
             } catch (error) {
                 console.error('Error saving user state:', error);
             }
@@ -351,16 +358,26 @@
         // Load bans
         async function loadBans() {
             try {
-                const { data: bansData } = await supabase.from(BANS_TABLE).select('*');
+                const bansSnapshot = await db.ref(BANS_PATH).once('value');
                 bannedUsers.clear();
-                bansData?.forEach(ban => {
-                    if (Date.now() < new Date(ban.end_time).getTime()) {
-                        bannedUsers.set(ban.lower_nick, {
-                            endTime: new Date(ban.end_time).getTime(),
-                            reason: ban.reason
-                        });
-                    }
-                });
+                const toRemove = [];
+                if (bansSnapshot.exists()) {
+                    bansSnapshot.forEach((childSnapshot) => {
+                        const ban = childSnapshot.val();
+                        const endTime = new Date(ban.end_time).getTime();
+                        if (Date.now() < endTime) {
+                            bannedUsers.set(childSnapshot.key, {
+                                endTime,
+                                reason: ban.reason
+                            });
+                        } else {
+                            toRemove.push(childSnapshot.key);
+                        }
+                    });
+                }
+                if (toRemove.length > 0) {
+                    await Promise.all(toRemove.map(key => db.ref(`${BANS_PATH}/${key}`).remove()));
+                }
             } catch (error) {
                 console.error('Error loading bans:', error);
             }
@@ -369,12 +386,14 @@
         // Save bans
         async function saveBans() {
             try {
-                const bansArray = Array.from(bannedUsers.entries()).map(([nick, ban]) => ({
-                    lower_nick: nick,
-                    end_time: new Date(ban.endTime).toISOString(),
-                    reason: ban.reason
-                }));
-                await supabase.from(BANS_TABLE).upsert(bansArray);
+                const updates = {};
+                bannedUsers.forEach((ban, nick) => {
+                    updates[`${BANS_PATH}/${nick}`] = {
+                        end_time: new Date(ban.endTime).toISOString(),
+                        reason: ban.reason
+                    };
+                });
+                await db.ref().update(updates);
             } catch (error) {
                 console.error('Error saving bans:', error);
             }
@@ -382,8 +401,12 @@
 
         // Save bot state
         async function saveBotState(enabled) {
-            await supabase.from(BOT_SETTINGS_TABLE).upsert({ enabled });
-            botEnabled = enabled;
+            try {
+                await db.ref(BOT_SETTINGS_PATH).set({ enabled });
+                botEnabled = enabled;
+            } catch (error) {
+                console.error('Error saving bot state:', error);
+            }
         }
 
         function addNotification(msg) {
@@ -395,74 +418,76 @@
         }
 
         async function registerUser(nick) {
-            const lowerNick = nick.toLowerCase();
-            if (!registeredUsers.has(lowerNick)) {
-                await saveUserState(); // Registers via upsert
-            }
+            await saveUserState(); // Registers via set
         }
 
         async function saveBan(nick, banData) {
             const lowerNick = nick.toLowerCase();
             bannedUsers.set(lowerNick, banData);
-            await saveBans();
+            await db.ref(`${BANS_PATH}/${lowerNick}`).set({
+                end_time: new Date(banData.endTime).toISOString(),
+                reason: banData.reason
+            });
         }
 
         async function deleteBan(nick) {
             const lowerNick = nick.toLowerCase();
             bannedUsers.delete(lowerNick);
-            await saveBans();
+            await db.ref(`${BANS_PATH}/${lowerNick}`).remove();
         }
 
         // Load chat messages realtime
         function loadChatMessages() {
-            if (chatSubscription) chatSubscription.unsubscribe();
-            chatSubscription = supabase
-                .channel('chat')
-                .on('postgres_changes', { event: '*', schema: 'public', table: CHAT_MESSAGES_TABLE },
-                    (payload) => {
-                        const msg = payload.new;
-                        const msgElement = document.createElement('div');
-                        msgElement.className = 'chat-message output';
-                        msgElement.textContent = `${msg.nick}: ${msg.text}`;
-                        terminal.appendChild(msgElement);
-                        terminal.scrollTop = terminal.scrollHeight;
-                    }
-                )
-                .subscribe();
+            if (chatListener) {
+                db.ref(CHAT_MESSAGES_PATH).off('child_added', chatListener);
+            }
+            const chatRef = db.ref(CHAT_MESSAGES_PATH);
+            chatListener = (snapshot) => {
+                const msg = snapshot.val();
+                const msgElement = document.createElement('div');
+                msgElement.className = 'chat-message output';
+                msgElement.textContent = `${msg.nick}: ${msg.text}`;
+                terminal.appendChild(msgElement);
+                terminal.scrollTop = terminal.scrollHeight;
+            };
+            chatRef.on('child_added', chatListener);
         }
 
         function unloadChatMessages() {
-            if (chatSubscription) {
-                chatSubscription.unsubscribe();
-                chatSubscription = null;
+            if (chatListener) {
+                db.ref(CHAT_MESSAGES_PATH).off('child_added', chatListener);
+                chatListener = null;
             }
         }
 
         // Online status
         async function setOnline() {
-            await supabase.from(ONLINE_USERS_TABLE).upsert({ lower_nick: currentNick.toLowerCase(), last_seen: new Date().toISOString() });
+            await db.ref(`${ONLINE_USERS_PATH}/${currentNick.toLowerCase()}`).set(firebase.database.ServerValue.TIMESTAMP);
         }
 
         async function setOffline() {
-            await supabase.from(ONLINE_USERS_TABLE).delete().eq('lower_nick', currentNick.toLowerCase());
+            await db.ref(`${ONLINE_USERS_PATH}/${currentNick.toLowerCase()}`).remove();
         }
 
         // Listen for online users
-        supabase
-            .channel('online')
-            .on('postgres_changes', { event: '*', schema: 'public', table: ONLINE_USERS_TABLE },
-                () => {
-                    loadOnlineUsers();
-                }
-            )
-            .subscribe();
+        function setupOnlineListener() {
+            onlineRef = db.ref(ONLINE_USERS_PATH);
+            onlineListener = (snapshot) => {
+                const data = snapshot.val() || {};
+                onlineUsers.clear();
+                Object.entries(data).forEach(([key, val]) => {
+                    const lastSeen = val;
+                    if (Date.now() - lastSeen < 30000) {
+                        onlineUsers.add(key);
+                    }
+                });
+            };
+            onlineRef.on('value', onlineListener);
+        }
 
         async function loadOnlineUsers() {
-            const { data } = await supabase
-                .from(ONLINE_USERS_TABLE)
-                .select('lower_nick')
-                .gt('last_seen', new Date(Date.now() - 30000).toISOString()); // 30s timeout
-            onlineUsers = new Set(data?.map(u => u.lower_nick) || []);
+            const { data } = await db.ref(ONLINE_USERS_PATH).once('value');
+            // Not needed, listener handles
         }
 
         function getTranslations() {
@@ -516,6 +541,8 @@
                 if (Date.now() < ban.endTime) {
                     inChat = false;
                     updatePrompt();
+                    unloadChatMessages();
+                    await setOffline();
                     const t = getTranslations();
                     const locale = getLocale();
                     const endStr = new Date(ban.endTime).toLocaleString(locale);
@@ -593,6 +620,9 @@
                 const t = getTranslations();
                 if (!isNickSet) {
                     return t.setNickFirst;
+                }
+                if (onlineUsers.size >= 100) {
+                    return t.chatFull;
                 }
                 const lowerNick = currentNick.toLowerCase();
                 if (bannedUsers.has(lowerNick)) {
@@ -790,18 +820,12 @@
                             output = t.unknownChatCmd(chatCmd);
                         }
                     } else {
-                        // General chat message - send to Supabase
-                        const { error } = await supabase
-                            .from(CHAT_MESSAGES_TABLE)
-                            .insert({ nick: currentNick, text: commandText });
-                        
-                        if (error) {
-                            console.error('Error sending message:', error);
-                            const errorElement = document.createElement('div');
-                            errorElement.className = 'output';
-                            errorElement.textContent = 'Failed to send message.';
-                            terminal.appendChild(errorElement);
-                        }
+                        // General chat message - send to Firebase
+                        await db.ref(CHAT_MESSAGES_PATH).push({
+                            nick: currentNick,
+                            text: commandText,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
                         
                         // Bot moderation
                         handleBotModeration(commandText, currentNick);
@@ -853,7 +877,7 @@
         // Initial setup
         async function init() {
             await loadState();
-            await loadOnlineUsers();
+            setupOnlineListener();
             const savedTerminal = localStorage.getItem('pipelTerminal');
             if (savedTerminal) {
                 terminal.innerHTML = savedTerminal;
