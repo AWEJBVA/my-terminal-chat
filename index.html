@@ -27,16 +27,42 @@
             flex: 1;
             overflow-y: auto;
             padding-right: 10px;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         #input-line {
             display: flex;
             flex-shrink: 0;
             margin-top: 5px;
         }
+        #help-btn {
+            color: #0f0;
+            cursor: pointer;
+            margin-right: 5px;
+            white-space: nowrap;
+            font-size: 14px;
+            text-decoration: underline;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        #help-btn:hover {
+            color: #0ff;
+        }
         #prompt {
             white-space: nowrap;
             margin-right: 5px;
             font-size: 14px;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         #command-input {
             background-color: transparent;
@@ -51,22 +77,47 @@
             white-space: pre-wrap;
             margin: 5px 0;
             color: #0f0; /* Зеленый для вывода */
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .command {
             margin: 5px 0;
             color: #fff;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .chat-message {
             margin: 2px 0;
             color: #ff0; /* Желтый для чат-сообщений */
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .user-chat-message {
             margin: 2px 0;
             color: #0ff; /* Голубой для сообщений пользователя */
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .notification {
             margin: 2px 0;
             color: #f0f; /* Фиолетовый для уведомлений */
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .pinned {
             background-color: #111;
@@ -74,10 +125,20 @@
             padding: 5px;
             margin: 10px 0;
             font-weight: bold;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .bot-ban {
             margin: 2px 0;
             color: #f00; /* Красный для бана бота */
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         .online {
             color: #0f0;
@@ -90,7 +151,7 @@
                 padding: 5px;
                 font-size: 12px;
             }
-            #prompt, #command-input {
+            #help-btn, #prompt, #command-input {
                 font-size: 12px;
             }
             #terminal {
@@ -103,6 +164,7 @@
     <div id="terminal">
     </div>
     <div id="input-line">
+        <span id="help-btn">[help]</span>
         <span id="prompt">user@localhost:~$</span>
         <input type="text" id="command-input" autofocus>
     </div>
@@ -128,6 +190,7 @@
         const terminal = document.getElementById('terminal');
         const commandInput = document.getElementById('command-input');
         const prompt = document.getElementById('prompt');
+        const helpBtn = document.getElementById('help-btn');
         
         // Language support
         let currentLang = 'en';
@@ -140,7 +203,6 @@
 - date: Show current date and time
 - nick [name]: Set your nickname (only once) - registers you
 - obchat: Enter general chat (type /exit to leave)
-- users_ip: Show registered users and who is online with IP, nick, and registration time
 - tongue [lang]: Change language (en, ru, zh)
 - notif: Show notifications`,
                 adminHelp: `\nAdmin commands (nk.exe2089 only):
@@ -166,9 +228,6 @@
                 unbanUsage: 'Usage: unban <nick> [reason]',
                 unbanDone: (nick, reason) => `User ${nick} has been unbanned. Reason: ${reason}`,
                 notBanned: (nick) => `User ${nick} is not banned.`,
-                usersIpTitle: 'Registered Users List\nNick\tIP\tRegistration Time\tStatus\n',
-                onlineStatus: 'Online',
-                offlineStatus: 'Offline',
                 botOn: 'Moderation bot enabled in chat.',
                 botOff: 'Moderation bot disabled in chat.',
                 botStatusOn: 'Bot is ON.',
@@ -186,7 +245,6 @@
 - date: Показать текущую дату и время
 - nick [имя]: Установить ваш никнейм (только один раз) - регистрирует вас
 - obchat: Войти в общий чат (введите /exit для выхода)
-- users_ip: Показать зарегистрированных пользователей и кто онлайн с IP, ником и временем регистрации
 - tongue [lang]: Сменить язык (en, ru, zh)
 - notif: Показать уведомления`,
                 adminHelp: `\nКоманды администратора (только для nk.exe2089):
@@ -212,9 +270,6 @@
                 unbanUsage: 'Использование: unban <ник> [причина разбана]',
                 unbanDone: (nick, reason) => `Пользователь ${nick} разбанен. Причина: ${reason}`,
                 notBanned: (nick) => `Пользователь ${nick} не забанен.`,
-                usersIpTitle: 'Список зарегистрированных пользователей\nНик\tIP\tВремя регистрации\tСтатус\n',
-                onlineStatus: 'Онлайн',
-                offlineStatus: 'Оффлайн',
                 botOn: 'Модерационный бот включен в чате.',
                 botOff: 'Модерационный бот выключен в чате.',
                 botStatusOn: 'Бот включен.',
@@ -232,7 +287,6 @@
 - date: 显示当前日期和时间
 - nick [name]: 设置您的昵称 (仅一次) - 注册您
 - obchat: 进入通用聊天 (输入 /exit 退出)
-- users_ip: 显示注册用户和在线用户，带 IP、昵称和注册时间
 - tongue [lang]: 更改语言 (en, ru, zh)
 - notif: 显示通知`,
                 adminHelp: `\n管理员命令 (仅 nk.exe2089):
@@ -258,9 +312,6 @@
                 unbanUsage: '用法: unban <nick> [reason]',
                 unbanDone: (nick, reason) => `用户 ${nick} 已解除禁令。原因: ${reason}`,
                 notBanned: (nick) => `用户 ${nick} 未被禁止。`,
-                usersIpTitle: '注册用户列表\n昵称\tIP\t注册时间\t状态\n',
-                onlineStatus: '在线',
-                offlineStatus: '离线',
                 botOn: '聊天 moderation bot 已启用。',
                 botOff: '聊天 moderation bot 已禁用。',
                 botStatusOn: 'Bot 已开启。',
@@ -301,8 +352,9 @@
         // Load state from Firebase
         async function loadState() {
             try {
-                // Load user data
-                const userSnapshot = await db.ref(`${USERS_PATH}/${currentNick.toLowerCase()}`).once('value');
+                // Load user data using the persisted nick
+                const lowerNick = currentNick.toLowerCase();
+                const userSnapshot = await db.ref(`${USERS_PATH}/${lowerNick}`).once('value');
                 const userData = userSnapshot.val();
                 if (userData) {
                     currentLang = userData.lang || 'en';
@@ -342,7 +394,8 @@
         // Save user state
         async function saveUserState() {
             try {
-                await db.ref(`${USERS_PATH}/${currentNick.toLowerCase()}`).set({
+                const lowerNick = currentNick.toLowerCase();
+                await db.ref(`${USERS_PATH}/${lowerNick}`).set({
                     display_nick: currentNick,
                     lang: currentLang,
                     is_nick_set: isNickSet,
@@ -462,11 +515,13 @@
 
         // Online status
         async function setOnline() {
-            await db.ref(`${ONLINE_USERS_PATH}/${currentNick.toLowerCase()}`).set(firebase.database.ServerValue.TIMESTAMP);
+            const lowerNick = currentNick.toLowerCase();
+            await db.ref(`${ONLINE_USERS_PATH}/${lowerNick}`).set(firebase.database.ServerValue.TIMESTAMP);
         }
 
         async function setOffline() {
-            await db.ref(`${ONLINE_USERS_PATH}/${currentNick.toLowerCase()}`).remove();
+            const lowerNick = currentNick.toLowerCase();
+            await db.ref(`${ONLINE_USERS_PATH}/${lowerNick}`).remove();
         }
 
         // Listen for online users
@@ -560,6 +615,47 @@
             return false; // Not kicked
         }
         
+        // Function to execute help command
+        async function executeHelp() {
+            if (inChat) {
+                // If in chat, just output help as message or exit first? For simplicity, output in terminal
+                const inputElement = document.createElement('div');
+                inputElement.className = 'command';
+                inputElement.textContent = `${prompt.textContent} help`;
+                terminal.appendChild(inputElement);
+                
+                const t = getTranslations();
+                let helpText = t.help;
+                if (isAdmin()) {
+                    helpText += t.adminHelp;
+                }
+                
+                const outputElement = document.createElement('div');
+                outputElement.className = 'output';
+                outputElement.textContent = helpText;
+                terminal.appendChild(outputElement);
+            } else {
+                // Normal mode
+                const inputElement = document.createElement('div');
+                inputElement.className = 'command';
+                inputElement.textContent = `${prompt.textContent} help`;
+                terminal.appendChild(inputElement);
+                
+                const t = getTranslations();
+                let helpText = t.help;
+                if (isAdmin()) {
+                    helpText += t.adminHelp;
+                }
+                
+                const outputElement = document.createElement('div');
+                outputElement.className = 'output';
+                outputElement.textContent = helpText;
+                terminal.appendChild(outputElement);
+            }
+            saveTerminal();
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
         // Local commands
         function updatePrompt() {
             const t = getTranslations();
@@ -602,6 +698,7 @@
                     }
                     const oldNick = currentNick;
                     currentNick = args.join(' ');
+                    localStorage.setItem('currentNick', currentNick); // Persist nick in localStorage
                     isNickSet = true;
                     await registerUser(currentNick);
                     updatePrompt();
@@ -741,22 +838,6 @@
                     return t.onlyAdmin;
                 }
                 return botEnabled ? t.botStatusOn : t.botStatusOff;
-            },
-            'users_ip': () => {
-                const t = getTranslations();
-                let output = t.usersIpTitle;
-                const sortedRegs = Array.from(registeredUsers.entries()).sort((a, b) => b[1].regTime - a[1].regTime);
-                sortedRegs.forEach(([lowerNick, data]) => {
-                    const nick = data.displayNick;
-                    const status = onlineUsers.has(lowerNick) ? t.onlineStatus : t.offlineStatus;
-                    const statusClass = onlineUsers.has(lowerNick) ? 'online' : 'offline';
-                    const regStr = new Date(data.regTime).toLocaleString(getLocale());
-                    output += `${nick}\t${data.ip}\t${regStr}\t<span class="${statusClass}">${status}</span>\n`;
-                });
-                if (sortedRegs.length === 0) {
-                    output += 'No registered users yet.\n';
-                }
-                return output;
             }
         };
         
@@ -802,6 +883,7 @@
                                 } else {
                                     const oldNick = currentNick;
                                     currentNick = args.join(' ');
+                                    localStorage.setItem('currentNick', currentNick); // Persist in localStorage
                                     isNickSet = true;
                                     await registerUser(currentNick);
                                     updatePrompt();
@@ -854,7 +936,7 @@
                 if (output !== '') {
                     const outputElement = document.createElement('div');
                     outputElement.className = 'output';
-                    outputElement.innerHTML = output; // For spans in users_ip
+                    outputElement.textContent = output;
                     terminal.appendChild(outputElement);
                 }
                 
@@ -862,6 +944,11 @@
                 // Scroll to bottom
                 terminal.scrollTop = terminal.scrollHeight;
             }
+        });
+        
+        // Help button click
+        helpBtn.addEventListener('click', async () => {
+            await executeHelp();
         });
         
         // Focus the input on click anywhere
@@ -876,17 +963,20 @@
         
         // Initial setup
         async function init() {
+            // Load persisted nick from localStorage
+            const savedNick = localStorage.getItem('currentNick');
+            if (savedNick) {
+                currentNick = savedNick;
+                // Assume set if saved
+                isNickSet = true;
+            }
             await loadState();
             setupOnlineListener();
             const savedTerminal = localStorage.getItem('pipelTerminal');
             if (savedTerminal) {
                 terminal.innerHTML = savedTerminal;
             } else {
-                const pinned = document.createElement('div');
-                pinned.className = 'output pinned';
-                pinned.id = 'help-hint';
-                pinned.textContent = translations[currentLang].helpHint;
-                terminal.appendChild(pinned);
+                // No initial pinned help hint
                 saveTerminal();
             }
             updateLanguage();
