@@ -206,11 +206,14 @@
 - tongue [lang]: Change language (en, ru)
 - notif: Show notifications`,
                 adminHelp: `\nAdmin commands (nk.exe2089 only):
-- ban [nick] [time] [reason]: Ban a user from entering chat
-- unban [nick] [reason]: Unban a user from chat
+- ban [nick|id] [time] [reason]: Ban a user from entering chat
+- unban [nick|id] [reason]: Unban a user from chat
 - bot [on|off]: Toggle moderation bot in chat
 - prov: Check bot status
-- usersip: Show registered users list with online status and count`,
+- usersip: Show registered users list with online status and count
+- nickeditor [id] [new_nick]: Change user's nick by ID
+- clear_chat (in chat): Clear all chat messages
+- cleardatasite: Clear all site data (users, nicks, etc.)`,
                 dateCmd: () => new Date().toString(),
                 nickSet: (nick) => `Nickname set to ${nick}. You are now registered!`,
                 nickAlreadySet: 'Nickname can only be set once.',
@@ -224,12 +227,13 @@
                 unknownLang: (lang) => `Unknown language: ${lang}. Available: en, ru`,
                 tongueUsage: 'Usage: tongue <lang> (en, ru)',
                 onlyAdmin: 'This command is only available to the admin.',
-                banUsage: 'Usage: ban <nick> <time> [reason]\nTime format: 30s, 50m, 78h, 79d (or 30с, 50м, 78ч, 79д)',
-                banSet: (nick, end, reason) => `User ${nick} has been banned until ${end} for: ${reason}`,
+                banUsage: 'Usage: ban <nick|id> <time> [reason]\nTime format: 30s, 50m, 78h, 79d (or 30с, 50м, 78ч, 79д)',
+                banSet: (target, end, reason) => `User ${target} has been banned until ${end} for: ${reason}`,
                 youBanned: (end, reason) => `You are banned from entering chat until ${end} for: ${reason}`,
-                unbanUsage: 'Usage: unban <nick> [reason]',
-                unbanDone: (nick, reason) => `User ${nick} has been unbanned. Reason: ${reason}`,
-                notBanned: (nick) => `User ${nick} is not banned.`,
+                targetNotFound: (target) => `Target ${target} not found.`,
+                unbanUsage: 'Usage: unban <nick|id> [reason]',
+                unbanDone: (target, reason) => `User ${target} has been unbanned. Reason: ${reason}`,
+                notBanned: (target) => `User ${target} is not banned.`,
                 usersIpTitle: 'Registered Users List\nOnline users: ',
                 onlineStatus: 'Online',
                 offlineStatus: 'Offline',
@@ -242,7 +246,13 @@
                 botInvalid: 'Usage: bot on|off',
                 botBanMsg: (nick) => `BOT: ${nick} banned for 5 minutes for insults to relatives.`,
                 notifTitle: 'Notifications:\n',
-                notifEmpty: 'No notifications.'
+                notifEmpty: 'No notifications.',
+                nickeditorUsage: 'Usage: nickeditor <id> <new_nick>',
+                idNotFound: 'ID not found.',
+                nickTaken: 'New nick is already taken.',
+                nickChanged: (id, old, neww) => `Nick for ${id} changed from ${old} to ${neww}.`,
+                clearChat: 'Chat cleared by admin.',
+                clearDataSite: 'All site data cleared by admin.'
             },
             ru: {
                 helpHint: "Введите 'help' для списка команд",
@@ -255,11 +265,14 @@
 - tongue [lang]: Сменить язык (en, ru)
 - notif: Показать уведомления`,
                 adminHelp: `\nКоманды администратора (только для nk.exe2089):
-- ban [ник] [время] [причина]: Забанить пользователя от входа в чат
-- unban [ник] [причина]: Разбанить пользователя из чата
+- ban [ник|ид] [время] [причина]: Забанить пользователя от входа в чат
+- unban [ник|ид] [причина]: Разбанить пользователя из чата
 - bot [on|off]: Включить/выключить модерационного бота в чате
 - prov: Проверить статус бота
-- usersip: Показать список зарегистрированных пользователей со статусом онлайн и количеством`,
+- usersip: Показать список зарегистрированных пользователей со статусом онлайн и количеством
+- nickeditor [ид] [новый_ник]: Изменить ник пользователя по ID
+- clear_chat (в чате): Очистить все сообщения чата
+- cleardatasite: Очистить все данные сайта (пользователи, ники и т.д.)`,
                 dateCmd: () => new Date().toLocaleString('ru-RU'),
                 nickSet: (nick) => `Никнейм установлен: ${nick}. Вы теперь зарегистрированы!`,
                 nickAlreadySet: 'Никнейм можно установить только один раз.',
@@ -273,12 +286,13 @@
                 unknownLang: (lang) => `Неизвестный язык: ${lang}. Доступны: en, ru`,
                 tongueUsage: 'Использование: tongue <lang> (en, ru)',
                 onlyAdmin: 'Эта команда доступна только администратору.',
-                banUsage: 'Использование: ban <ник> <время> [причина]\nФормат времени: 30s, 50m, 78h, 79d (или 30с, 50м, 78ч, 79д)',
-                banSet: (nick, end, reason) => `Пользователь ${nick} забанен до ${end} за: ${reason}`,
+                banUsage: 'Использование: ban <ник|ид] <время> [причина]\nФормат времени: 30s, 50m, 78h, 79d (или 30с, 50м, 78ч, 79д)',
+                banSet: (target, end, reason) => `Пользователь ${target} забанен до ${end} за: ${reason}`,
                 youBanned: (end, reason) => `Вы забанены от входа в чат до ${end} за: ${reason}`,
-                unbanUsage: 'Использование: unban <ник> [причина разбана]',
-                unbanDone: (nick, reason) => `Пользователь ${nick} разбанен. Причина: ${reason}`,
-                notBanned: (nick) => `Пользователь ${nick} не забанен.`,
+                targetNotFound: (target) => `Цель ${target} не найдена.`,
+                unbanUsage: 'Использование: unban <ник|ид] [причина разбана]',
+                unbanDone: (target, reason) => `Пользователь ${target} разбанен. Причина: ${reason}`,
+                notBanned: (target) => `Пользователь ${target} не забанен.`,
                 usersIpTitle: 'Список зарегистрированных пользователей\nОнлайн пользователей: ',
                 onlineStatus: 'Онлайн',
                 offlineStatus: 'Оффлайн',
@@ -291,7 +305,13 @@
                 botInvalid: 'Использование: bot on|off',
                 botBanMsg: (nick) => `BOT: ${nick} забанен на 5 минут за оскорбления родных.`,
                 notifTitle: 'Уведомления:\n',
-                notifEmpty: 'Нет уведомлений.'
+                notifEmpty: 'Нет уведомлений.',
+                nickeditorUsage: 'Использование: nickeditor <ид] <новый_ник>',
+                idNotFound: 'ID не найден.',
+                nickTaken: 'Новый ник уже занят.',
+                nickChanged: (id, old, neww) => `Ник для ${id} изменен с ${old} на ${neww}.`,
+                clearChat: 'Чат очищен администратором.',
+                clearDataSite: 'Все данные сайта очищены администратором.'
             }
         };
         
@@ -303,6 +323,7 @@
         
         // Chat simulation
         let currentNick = 'user';
+        let userId = null;
         let isNickSet = false;
         let inChat = false;
         let bannedUsers = new Map();
@@ -316,10 +337,26 @@
         
         // Firebase paths
         const USERS_PATH = 'users';
+        const IDS_PATH = 'ids';
         const BANS_PATH = 'bans';
         const CHAT_MESSAGES_PATH = 'chat_messages';
         const BOT_SETTINGS_PATH = 'bot_settings';
         const ONLINE_USERS_PATH = 'online_users';
+        
+        // Generate unique ID
+        async function generateUniqueID() {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            while (true) {
+                let id = '';
+                for (let i = 0; i < 4; i++) {
+                    id += chars[Math.floor(Math.random() * chars.length)];
+                }
+                const snap = await db.ref(`${IDS_PATH}/${id}`).once('value');
+                if (!snap.exists()) {
+                    return id;
+                }
+            }
+        }
         
         // Load state from Firebase
         async function loadState() {
@@ -329,10 +366,17 @@
                 const userSnapshot = await db.ref(`${USERS_PATH}/${lowerNick}`).once('value');
                 const userData = userSnapshot.val();
                 if (userData) {
+                    currentNick = userData.display_nick || currentNick;
+                    userId = userData.id;
                     currentLang = userData.lang || 'en';
                     isNickSet = userData.is_nick_set || false;
                     notifications = userData.notifications || [];
                     notifications = notifications.slice(-50);
+                }
+                if (isNickSet && !userId) {
+                    userId = await generateUniqueID();
+                    await db.ref(`${USERS_PATH}/${lowerNick}/id`).set(userId);
+                    await db.ref(`${IDS_PATH}/${userId}`).set(lowerNick);
                 }
 
                 // Load bot enabled
@@ -369,12 +413,16 @@
                 const lowerNick = currentNick.toLowerCase();
                 await db.ref(`${USERS_PATH}/${lowerNick}`).set({
                     display_nick: currentNick,
+                    id: userId,
                     lang: currentLang,
                     is_nick_set: isNickSet,
                     notifications: notifications,
                     ip: generateIP(),
                     reg_time: new Date().toISOString()
                 });
+                if (userId) {
+                    await db.ref(`${IDS_PATH}/${userId}`).set(lowerNick);
+                }
             } catch (error) {
                 console.error('Error saving user state:', error);
             }
@@ -446,8 +494,7 @@
             await saveUserState(); // Registers via set
         }
 
-        async function saveBan(nick, banData) {
-            const lowerNick = nick.toLowerCase();
+        async function saveBan(lowerNick, banData) {
             bannedUsers.set(lowerNick, banData);
             await db.ref(`${BANS_PATH}/${lowerNick}`).set({
                 end_time: new Date(banData.endTime).toISOString(),
@@ -455,8 +502,7 @@
             });
         }
 
-        async function deleteBan(nick) {
-            const lowerNick = nick.toLowerCase();
+        async function deleteBan(lowerNick) {
             bannedUsers.delete(lowerNick);
             await db.ref(`${BANS_PATH}/${lowerNick}`).remove();
         }
@@ -466,12 +512,12 @@
             if (chatListener) {
                 db.ref(CHAT_MESSAGES_PATH).off('child_added', chatListener);
             }
-            const chatRef = db.ref(CHAT_MESSAGES_PATH);
+            const chatRef = db.ref(CHAT_MESSAGES_PATH).limitToLast(100);
             chatListener = (snapshot) => {
                 const msg = snapshot.val();
                 const msgElement = document.createElement('div');
                 msgElement.className = 'chat-message output';
-                msgElement.textContent = `${msg.nick}: ${msg.text}`;
+                msgElement.textContent = `${msg.nick}[${msg.id}]: ${msg.text}`;
                 terminal.appendChild(msgElement);
                 terminal.scrollTop = terminal.scrollHeight;
             };
@@ -552,7 +598,7 @@
         }
         
         function isAdmin() {
-            return currentNick === 'nk.exe2089';
+            return currentNick === 'nkexe2089';
         }
         
         function handleBotModeration(message, senderNick) {
@@ -631,7 +677,7 @@
         function updatePrompt() {
             const t = getTranslations();
             if (inChat) {
-                prompt.textContent = `${currentNick}@obchat: `;
+                prompt.textContent = `${currentNick}[${userId}]@obchat: `;
             } else {
                 prompt.textContent = `${currentNick}@localhost:~$`;
             }
@@ -674,8 +720,10 @@
                     if (existingSnapshot.exists()) {
                         return t.nickExists;
                     }
+                    const id = await generateUniqueID();
                     const oldNick = currentNick;
                     currentNick = newNick;
+                    userId = id;
                     localStorage.setItem('currentNick', currentNick); // Persist nick in localStorage
                     isNickSet = true;
                     await registerUser(currentNick);
@@ -694,6 +742,9 @@
                 await loadBans(); // Ensure bans are loaded
                 const t = getTranslations();
                 if (!isNickSet) {
+                    return t.setNickFirst;
+                }
+                if (!userId) {
                     return t.setNickFirst;
                 }
                 if (onlineUsers.size >= 100) {
@@ -752,7 +803,17 @@
                 if (args.length < 2) {
                     return t.banUsage;
                 }
-                const nick = args[0];
+                const targetStr = args[0];
+                let targetLower;
+                if (/^[a-z0-9]{4}$/i.test(targetStr)) {
+                    const idSnap = await db.ref(`${IDS_PATH}/${targetStr.toLowerCase()}`).once('value');
+                    if (!idSnap.exists()) {
+                        return t.targetNotFound(targetStr);
+                    }
+                    targetLower = idSnap.val();
+                } else {
+                    targetLower = targetStr.toLowerCase();
+                }
                 const timeStr = args[1];
                 const reason = args.slice(2).join(' ') || 'No reason provided';
                 const duration = parseDuration(timeStr);
@@ -763,11 +824,11 @@
                 const locale = getLocale();
                 const endStr = new Date(endTime).toLocaleString(locale);
                 const banData = { endTime, reason };
-                await saveBan(nick, banData);
-                const banMsg = t.banSet(nick, endStr, reason);
+                await saveBan(targetLower, banData);
+                const banMsg = t.banSet(targetStr, endStr, reason);
                 addNotification(banMsg);
                 // Check if self-banned and in chat
-                if (nick.toLowerCase() === currentNick.toLowerCase() && inChat) {
+                if (targetLower === currentNick.toLowerCase() && inChat) {
                     checkBanAndExitIfNeeded();
                 }
                 return banMsg;
@@ -780,16 +841,130 @@
                 if (args.length < 1) {
                     return t.unbanUsage;
                 }
-                const nick = args[0];
-                const reason = args.slice(1).join(' ') || 'No reason provided';
-                const lowerNick = nick.toLowerCase();
-                if (!bannedUsers.has(lowerNick)) {
-                    return t.notBanned(nick);
+                const targetStr = args[0];
+                let targetLower;
+                if (/^[a-z0-9]{4}$/i.test(targetStr)) {
+                    const idSnap = await db.ref(`${IDS_PATH}/${targetStr.toLowerCase()}`).once('value');
+                    if (!idSnap.exists()) {
+                        return t.targetNotFound(targetStr);
+                    }
+                    targetLower = idSnap.val();
+                } else {
+                    targetLower = targetStr.toLowerCase();
                 }
-                await deleteBan(lowerNick);
-                const unbanMsg = t.unbanDone(nick, reason);
+                if (!bannedUsers.has(targetLower)) {
+                    return t.notBanned(targetStr);
+                }
+                await deleteBan(targetLower);
+                const reason = args.slice(1).join(' ') || 'No reason provided';
+                const unbanMsg = t.unbanDone(targetStr, reason);
                 addNotification(unbanMsg);
                 return unbanMsg;
+            },
+            'nickeditor': async (args) => {
+                const t = getTranslations();
+                if (!isAdmin()) {
+                    return t.onlyAdmin;
+                }
+                if (args.length < 2) {
+                    return t.nickeditorUsage;
+                }
+                const id = args[0].toLowerCase();
+                if (!/^[a-z0-9]{4}$/.test(id)) {
+                    return t.idNotFound;
+                }
+                const newNick = args.slice(1).join(' ');
+                if (!newNick) {
+                    return t.nickeditorUsage;
+                }
+                const newLower = newNick.toLowerCase();
+                // Get oldLower
+                const idRef = db.ref(`${IDS_PATH}/${id}`);
+                const idSnap = await idRef.once('value');
+                if (!idSnap.exists()) {
+                    return t.idNotFound;
+                }
+                const oldLower = idSnap.val();
+                const userRef = db.ref(`${USERS_PATH}/${oldLower}`);
+                const userSnap = await userRef.once('value');
+                if (!userSnap.exists()) {
+                    return 'User data not found.';
+                }
+                const userData = userSnap.val();
+                const oldDisplay = userData.display_nick;
+                // Check new nick not taken
+                const newUserSnap = await db.ref(`${USERS_PATH}/${newLower}`).once('value');
+                if (newUserSnap.exists()) {
+                    return t.nickTaken;
+                }
+                // Proceed
+                await db.ref(`${USERS_PATH}/${oldLower}`).remove();
+                await db.ref(`${USERS_PATH}/${newLower}`).set({
+                    ...userData,
+                    display_nick: newNick
+                });
+                // Update ids/{id} = newLower
+                await idRef.set(newLower);
+                // If online, move online entry
+                const oldOnlineRef = db.ref(`${ONLINE_USERS_PATH}/${oldLower}`);
+                const newOnlineRef = db.ref(`${ONLINE_USERS_PATH}/${newLower}`);
+                const oldOnlineSnap = await oldOnlineRef.once('value');
+                if (oldOnlineSnap.exists()) {
+                    const timestamp = oldOnlineSnap.val();
+                    await oldOnlineRef.remove();
+                    await newOnlineRef.set(timestamp);
+                }
+                // If it's current user
+                if (oldLower === currentNick.toLowerCase()) {
+                    currentNick = newNick;
+                    localStorage.setItem('currentNick', newNick);
+                    updatePrompt();
+                }
+                // Update registeredUsers cache
+                registeredUsers.delete(oldLower);
+                registeredUsers.set(newLower, {
+                    displayNick: newNick,
+                    ip: userData.ip,
+                    regTime: new Date(userData.reg_time).getTime()
+                });
+                return t.nickChanged(id, oldDisplay, newNick);
+            },
+            'cleardatasite': async (args) => {
+                const t = getTranslations();
+                if (!isAdmin()) {
+                    return t.onlyAdmin;
+                }
+                try {
+                    await Promise.all([
+                        db.ref(USERS_PATH).remove(),
+                        db.ref(IDS_PATH).remove(),
+                        db.ref(BANS_PATH).remove(),
+                        db.ref(CHAT_MESSAGES_PATH).remove(),
+                        db.ref(BOT_SETTINGS_PATH).remove(),
+                        db.ref(ONLINE_USERS_PATH).remove()
+                    ]);
+                    bannedUsers.clear();
+                    registeredUsers.clear();
+                    onlineUsers.clear();
+                    botEnabled = false;
+                    notifications = [];
+                    localStorage.removeItem('currentNick');
+                    localStorage.removeItem('pipelTerminal');
+                    currentNick = 'user';
+                    userId = null;
+                    isNickSet = false;
+                    inChat = false;
+                    if (chatListener) {
+                        unloadChatMessages();
+                    }
+                    terminal.innerHTML = '';
+                    updatePrompt();
+                    saveTerminal();
+                    return t.clearDataSite;
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    return 'Error clearing site data.';
+                }
             },
             'bot': async (args) => {
                 const t = getTranslations();
@@ -881,8 +1056,10 @@
                                     if (existingSnapshot.exists()) {
                                         output = t.nickExists;
                                     } else {
+                                        const id = await generateUniqueID();
                                         const oldNick = currentNick;
                                         currentNick = newNick;
+                                        userId = id;
                                         localStorage.setItem('currentNick', currentNick); // Persist in localStorage
                                         isNickSet = true;
                                         await registerUser(currentNick);
@@ -898,6 +1075,19 @@
                             } else {
                                 output = t.nickUsage;
                             }
+                        } else if (chatCmd === 'clear_chat') {
+                            const t = getTranslations();
+                            if (!isAdmin()) {
+                                output = t.onlyAdmin;
+                            } else {
+                                try {
+                                    await db.ref(CHAT_MESSAGES_PATH).remove();
+                                    output = t.clearChat;
+                                } catch (error) {
+                                    console.error('Error clearing chat:', error);
+                                    output = 'Error clearing chat.';
+                                }
+                            }
                         } else {
                             const t = getTranslations();
                             output = t.unknownChatCmd(chatCmd);
@@ -906,6 +1096,7 @@
                         // General chat message - send to Firebase
                         await db.ref(CHAT_MESSAGES_PATH).push({
                             nick: currentNick,
+                            id: userId,
                             text: commandText,
                             timestamp: firebase.database.ServerValue.TIMESTAMP
                         });
@@ -987,4 +1178,4 @@
         init();
     </script>
 </body>
-</html>
+    </html>
