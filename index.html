@@ -203,24 +203,26 @@
 - date: Show current date and time
 - nick [name]: Set your nickname (only once) - registers you
 - obchat: Enter general chat (type /exit to leave)
-- tongue [lang]: Change language (en, ru, zh)
+- tongue [lang]: Change language (en, ru)
 - notif: Show notifications`,
                 adminHelp: `\nAdmin commands (nk.exe2089 only):
 - ban [nick] [time] [reason]: Ban a user from entering chat
 - unban [nick] [reason]: Unban a user from chat
 - bot [on|off]: Toggle moderation bot in chat
-- prov: Check bot status`,
+- prov: Check bot status
+- usersip: Show registered users list with online status and count`,
                 dateCmd: () => new Date().toString(),
                 nickSet: (nick) => `Nickname set to ${nick}. You are now registered!`,
                 nickAlreadySet: 'Nickname can only be set once.',
+                nickExists: 'Such nickname already exists.',
                 nickUsage: 'Usage: nick <name>',
                 setNickFirst: 'Please set a nickname first using "nick <name>".',
                 obchatEnter: 'Entered general chat. Type messages to chat. Use /exit to leave.',
                 obchatLeave: 'Left general chat.',
                 chatFull: 'Chat is full. Maximum 100 users.',
                 unknownChatCmd: (cmd) => `Unknown chat command: /${cmd}`,
-                unknownLang: (lang) => `Unknown language: ${lang}. Available: en, ru, zh`,
-                tongueUsage: 'Usage: tongue <lang> (en, ru, zh)',
+                unknownLang: (lang) => `Unknown language: ${lang}. Available: en, ru`,
+                tongueUsage: 'Usage: tongue <lang> (en, ru)',
                 onlyAdmin: 'This command is only available to the admin.',
                 banUsage: 'Usage: ban <nick> <time> [reason]\nTime format: 30s, 50m, 78h, 79d (or 30с, 50м, 78ч, 79д)',
                 banSet: (nick, end, reason) => `User ${nick} has been banned until ${end} for: ${reason}`,
@@ -228,6 +230,11 @@
                 unbanUsage: 'Usage: unban <nick> [reason]',
                 unbanDone: (nick, reason) => `User ${nick} has been unbanned. Reason: ${reason}`,
                 notBanned: (nick) => `User ${nick} is not banned.`,
+                usersIpTitle: 'Registered Users List\nOnline users: ',
+                onlineStatus: 'Online',
+                offlineStatus: 'Offline',
+                usersIpFormat: '\nNick\tIP\tRegistration Time\tStatus\n',
+                noUsers: 'No registered users yet.\n',
                 botOn: 'Moderation bot enabled in chat.',
                 botOff: 'Moderation bot disabled in chat.',
                 botStatusOn: 'Bot is ON.',
@@ -245,24 +252,26 @@
 - date: Показать текущую дату и время
 - nick [имя]: Установить ваш никнейм (только один раз) - регистрирует вас
 - obchat: Войти в общий чат (введите /exit для выхода)
-- tongue [lang]: Сменить язык (en, ru, zh)
+- tongue [lang]: Сменить язык (en, ru)
 - notif: Показать уведомления`,
                 adminHelp: `\nКоманды администратора (только для nk.exe2089):
 - ban [ник] [время] [причина]: Забанить пользователя от входа в чат
 - unban [ник] [причина]: Разбанить пользователя из чата
 - bot [on|off]: Включить/выключить модерационного бота в чате
-- prov: Проверить статус бота`,
+- prov: Проверить статус бота
+- usersip: Показать список зарегистрированных пользователей со статусом онлайн и количеством`,
                 dateCmd: () => new Date().toLocaleString('ru-RU'),
                 nickSet: (nick) => `Никнейм установлен: ${nick}. Вы теперь зарегистрированы!`,
                 nickAlreadySet: 'Никнейм можно установить только один раз.',
+                nickExists: 'Такой никнейм уже существует.',
                 nickUsage: 'Использование: nick <имя>',
                 setNickFirst: 'Сначала установите никнейм с помощью "nick <имя>".',
                 obchatEnter: 'Вошли в общий чат. Пишите сообщения для общения. Используйте /exit для выхода.',
                 obchatLeave: 'Вышли из общего чата.',
                 chatFull: 'Чат заполнен. Максимум 100 пользователей.',
                 unknownChatCmd: (cmd) => `Неизвестная команда чата: /${cmd}`,
-                unknownLang: (lang) => `Неизвестный язык: ${lang}. Доступны: en, ru, zh`,
-                tongueUsage: 'Использование: tongue <lang> (en, ru, zh)',
+                unknownLang: (lang) => `Неизвестный язык: ${lang}. Доступны: en, ru`,
+                tongueUsage: 'Использование: tongue <lang> (en, ru)',
                 onlyAdmin: 'Эта команда доступна только администратору.',
                 banUsage: 'Использование: ban <ник> <время> [причина]\nФормат времени: 30s, 50m, 78h, 79d (или 30с, 50м, 78ч, 79д)',
                 banSet: (nick, end, reason) => `Пользователь ${nick} забанен до ${end} за: ${reason}`,
@@ -270,6 +279,11 @@
                 unbanUsage: 'Использование: unban <ник> [причина разбана]',
                 unbanDone: (nick, reason) => `Пользователь ${nick} разбанен. Причина: ${reason}`,
                 notBanned: (nick) => `Пользователь ${nick} не забанен.`,
+                usersIpTitle: 'Список зарегистрированных пользователей\nОнлайн пользователей: ',
+                onlineStatus: 'Онлайн',
+                offlineStatus: 'Оффлайн',
+                usersIpFormat: '\nНик\tIP\tВремя регистрации\tСтатус\n',
+                noUsers: 'Нет зарегистрированных пользователей.\n',
                 botOn: 'Модерационный бот включен в чате.',
                 botOff: 'Модерационный бот выключен в чате.',
                 botStatusOn: 'Бот включен.',
@@ -278,48 +292,6 @@
                 botBanMsg: (nick) => `BOT: ${nick} забанен на 5 минут за оскорбления родных.`,
                 notifTitle: 'Уведомления:\n',
                 notifEmpty: 'Нет уведомлений.'
-            },
-            zh: {
-                helpHint: "输入 'help' 查看可用命令",
-                help: `可用命令:
-- help: 显示此帮助消息
-- clear: 清空终端
-- date: 显示当前日期和时间
-- nick [name]: 设置您的昵称 (仅一次) - 注册您
-- obchat: 进入通用聊天 (输入 /exit 退出)
-- tongue [lang]: 更改语言 (en, ru, zh)
-- notif: 显示通知`,
-                adminHelp: `\n管理员命令 (仅 nk.exe2089):
-- ban [nick] [time] [reason]: 禁止用户进入聊天
-- unban [nick] [reason]: 解除用户聊天禁令
-- bot [on|off]: 切换聊天中的 moderation bot
-- prov: 检查 bot 状态`,
-                dateCmd: () => new Date().toLocaleString('zh-CN'),
-                nickSet: (nick) => `昵称设置为 ${nick}。您现在已注册！`,
-                nickAlreadySet: '昵称只能设置一次。',
-                nickUsage: '用法: nick <name>',
-                setNickFirst: '请先使用 "nick <name>" 设置昵称。',
-                obchatEnter: '已进入通用聊天。输入消息聊天。使用 /exit 退出。',
-                obchatLeave: '已离开通用聊天。',
-                chatFull: '聊天已满。最多 100 用户。',
-                unknownChatCmd: (cmd) => `未知聊天命令: /${cmd}`,
-                unknownLang: (lang) => `未知语言: ${lang}。可用: en, ru, zh`,
-                tongueUsage: '用法: tongue <lang> (en, ru, zh)',
-                onlyAdmin: '此命令仅管理员可用。',
-                banUsage: '用法: ban <nick> <time> [reason]\n时间格式: 30s, 50m, 78h, 79d (或 30с, 50м, 78ч, 79д)',
-                banSet: (nick, end, reason) => `用户 ${nick} 被禁止直到 ${end} 原因: ${reason}`,
-                youBanned: (end, reason) => `您被禁止进入聊天直到 ${end} 原因: ${reason}`,
-                unbanUsage: '用法: unban <nick> [reason]',
-                unbanDone: (nick, reason) => `用户 ${nick} 已解除禁令。原因: ${reason}`,
-                notBanned: (nick) => `用户 ${nick} 未被禁止。`,
-                botOn: '聊天 moderation bot 已启用。',
-                botOff: '聊天 moderation bot 已禁用。',
-                botStatusOn: 'Bot 已开启。',
-                botStatusOff: 'Bot 已关闭。',
-                botInvalid: '用法: bot on|off',
-                botBanMsg: (nick) => `BOT: ${nick} 被禁 5 分钟因 insults to relatives。`,
-                notifTitle: '通知:\n',
-                notifEmpty: '无通知。'
             }
         };
         
@@ -553,7 +525,6 @@
             switch (currentLang) {
                 case 'en': return 'en-US';
                 case 'ru': return 'ru-RU';
-                case 'zh': return 'zh-CN';
                 default: return 'en-US';
             }
         }
@@ -696,8 +667,15 @@
                     if (isNickSet) {
                         return t.nickAlreadySet;
                     }
+                    const newNick = args.join(' ');
+                    const newLowerNick = newNick.toLowerCase();
+                    // Check if nick already exists
+                    const existingSnapshot = await db.ref(`${USERS_PATH}/${newLowerNick}`).once('value');
+                    if (existingSnapshot.exists()) {
+                        return t.nickExists;
+                    }
                     const oldNick = currentNick;
-                    currentNick = args.join(' ');
+                    currentNick = newNick;
                     localStorage.setItem('currentNick', currentNick); // Persist nick in localStorage
                     isNickSet = true;
                     await registerUser(currentNick);
@@ -742,7 +720,7 @@
                 const t = getTranslations();
                 if (args.length > 0) {
                     const lang = args[0].toLowerCase();
-                    if (['en', 'ru', 'zh'].includes(lang)) {
+                    if (['en', 'ru'].includes(lang)) {
                         currentLang = lang;
                         await saveUserState();
                         updateLanguage();
@@ -838,6 +816,21 @@
                     return t.onlyAdmin;
                 }
                 return botEnabled ? t.botStatusOn : t.botStatusOff;
+            },
+            'usersip': () => {
+                const t = getTranslations();
+                let output = t.usersIpTitle + onlineUsers.size + t.usersIpFormat;
+                const sortedRegs = Array.from(registeredUsers.entries()).sort((a, b) => b[1].regTime - a[1].regTime);
+                sortedRegs.forEach(([lowerNick, data]) => {
+                    const nick = data.displayNick;
+                    const status = onlineUsers.has(lowerNick) ? t.onlineStatus : t.offlineStatus;
+                    const regStr = new Date(data.regTime).toLocaleString(getLocale());
+                    output += `${nick}\t${data.ip}\t${regStr}\t${status}\n`;
+                });
+                if (sortedRegs.length === 0) {
+                    output += t.noUsers;
+                }
+                return output;
             }
         };
         
@@ -881,18 +874,26 @@
                                 if (isNickSet) {
                                     output = t.nickAlreadySet;
                                 } else {
-                                    const oldNick = currentNick;
-                                    currentNick = args.join(' ');
-                                    localStorage.setItem('currentNick', currentNick); // Persist in localStorage
-                                    isNickSet = true;
-                                    await registerUser(currentNick);
-                                    updatePrompt();
-                                    if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
-                                        output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
+                                    const newNick = args.join(' ');
+                                    const newLowerNick = newNick.toLowerCase();
+                                    // Check if nick already exists
+                                    const existingSnapshot = await db.ref(`${USERS_PATH}/${newLowerNick}`).once('value');
+                                    if (existingSnapshot.exists()) {
+                                        output = t.nickExists;
                                     } else {
-                                        output = t.nickSet(currentNick);
+                                        const oldNick = currentNick;
+                                        currentNick = newNick;
+                                        localStorage.setItem('currentNick', currentNick); // Persist in localStorage
+                                        isNickSet = true;
+                                        await registerUser(currentNick);
+                                        updatePrompt();
+                                        if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
+                                            output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
+                                        } else {
+                                            output = t.nickSet(currentNick);
+                                        }
+                                        await saveUserState();
                                     }
-                                    await saveUserState();
                                 }
                             } else {
                                 output = t.nickUsage;
@@ -986,4 +987,4 @@
         init();
     </script>
 </body>
-    </html>
+</html>
