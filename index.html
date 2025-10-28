@@ -276,7 +276,7 @@
 - tongue [lang]: Change language (en, ru)
 - notif: Show notifications
 - users_ip: Show users list with nick, id, status`,
-                adminHelp: `\nAdmin commands (nk.exe2089 only):
+                adminHelp: `\nAdmin commands (🜲الشيطان🜲 only):
 - ban [nick|id] [time] [reason]: Ban a user from entering chat
 - unban [nick|id] [reason]: Unban a user from chat
 - bot [on|off]: Toggle moderation bot in chat
@@ -339,7 +339,7 @@
 - tongue [lang]: Сменить язык (en, ru)
 - notif: Показать уведомления
 - users_ip: Показать список пользователей с ником, ид, статусом`,
-                adminHelp: `\nКоманды администратора (только для nk.exe2089):
+                adminHelp: `\nКоманды администратора (только для 🜲الشيطان🜲):
 - ban [ник|ид] [время] [причина]: Забанить пользователя от входа в чат
 - unban [ник|ид] [причина]: Разбанить пользователя из чата
 - bot [on|off]: Включить/выключить модерационного бота в чате
@@ -887,7 +887,7 @@
                     await db.ref(`${IDS_PATH}/${id}`).set(newLowerNick);
                     updatePrompt();
                     // If was admin, check if new is admin too
-                    if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
+                    if (oldNick === '🜲الشيطان🜲' && currentNick !== '🜲الشيطان🜲') {
                         return `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
                     }
                     await saveUserState();
@@ -959,7 +959,7 @@
             },
             'users_ip': () => {
                 const t = getTranslations();
-                let output = t.usersIpUsersTitle + onlineUsers.size + '\n' + t.usersIpUsersFormat;
+                let output = t.usersIpUsersTitle;
                 const sortedRegs = Array.from(registeredUsers.entries()).sort((a, b) => (b[1].lastLogin || 0) - (a[1].lastLogin || 0));
                 sortedRegs.forEach(([lowerNick, data]) => {
                     const nick = data.displayNick;
@@ -1270,7 +1270,7 @@
                                         });
                                         await db.ref(`${IDS_PATH}/${id}`).set(newLowerNick);
                                         updatePrompt();
-                                        if (oldNick === 'nk.exe2089' && currentNick !== 'nk.exe2089') {
+                                        if (oldNick === '🜲الشيطان🜲' && currentNick !== '🜲الشيطان🜲') {
                                             output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
                                         } else {
                                             output = t.nickSet(currentNick);
