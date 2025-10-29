@@ -165,9 +165,24 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+            position: relative;
         }
         .top-btn:hover {
             color: #0ff;
+        }
+        .btn-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #f00;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .chat-date {
             margin: 10px auto 5px auto;
@@ -198,6 +213,45 @@
             color: #f0f;
             font-style: italic;
         }
+        .rules-link {
+            text-align: center;
+            margin: 5px auto;
+            color: #0ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .rules-link:hover {
+            color: #ff0;
+        }
+        .welcome-message {
+            position: fixed;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            background-color: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            width: 250px;
+            z-index: 1000;
+            text-align: center;
+        }
+        .welcome-text {
+            color: #0ff;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .close-welcome {
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'CustomMono', 'Courier New', monospace;
+            width: 100%;
+        }
+        .close-welcome:hover {
+            background-color: #555;
+        }
         @media (max-width: 600px) {
             body {
                 padding: 5px;
@@ -217,10 +271,19 @@
             .top-btn {
                 font-size: 10px;
             }
+            .welcome-message {
+                left: 5px;
+                width: 200px;
+            }
         }
     </style>
 </head>
 <body>
+    <div id="welcome-message" class="welcome-message">
+        <div class="welcome-text">Type 'help' for available commands</div>
+        <button class="close-welcome" id="close-welcome">OK</button>
+    </div>
+
     <div id="top-buttons">
         <span class="top-btn" id="exit-btn">[exit]</span>
         <span class="top-btn" id="clear-btn">[clear]</span>
@@ -264,6 +327,8 @@
         const clearBtn = document.getElementById('clear-btn');
         const obchatBtn = document.getElementById('obchat-btn');
         const notifBtn = document.getElementById('notif-btn');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const closeWelcomeBtn = document.getElementById('close-welcome');
         
         // Ключ шифрования (можно изменить для большей безопасности)
         const ENCRYPTION_KEY = "pipel-chat-secret-key-2024";
@@ -302,13 +367,14 @@
 - obchat: Enter general chat (type /exit to leave)
 - tongue [lang]: Change language (en, ru)
 - notif: Show notifications
-- users_ip: Show users list with nick, id, status`,
+- sms [nick|id] [message]: Send private message
+- users_ip: Show online users list with nick and id`,
+                chatHelp: `Chat commands:
+- /exit: Leave the chat
+- /sms [nick|id] [message]: Send private message`,
                 adminHelp: `\nAdmin commands (🜲الشيطان🜲 only):
 - ban [nick|id] [time] [reason]: Ban a user from entering chat
 - unban [nick|id] [reason]: Unban a user from chat
-- bot [on|off]: Toggle moderation bot in chat
-- prov: Check bot status
-- usersip: Show registered users list with nick, ip, id, reg time, status
 - nickeditor [id] [new_nick]: Change user's nick by ID
 - clear_chat (in chat): Clear all chat messages`,
                 dateCmd: () => new Date().toString(),
@@ -330,15 +396,6 @@
                 unbanUsage: 'Usage: unban <nick|id] [reason]',
                 unbanDone: (target, reason) => `User ${target} has been unbanned. Reason: ${reason}`,
                 notBanned: (target) => `User ${target} is not banned.`,
-                usersIpTitle: 'Registered Users List\nOnline users: ',
-                usersIpFormat: '\nNick\tIP\tID\tReg Time\tStatus\n',
-                noUsers: 'No registered users yet.\n',
-                botOn: 'Moderation bot enabled in chat.',
-                botOff: 'Moderation bot disabled in chat.',
-                botStatusOn: 'Bot is ON.',
-                botStatusOff: 'Bot is OFF.',
-                botInvalid: 'Usage: bot on|off',
-                botBanMsg: (nick) => `BOT: ${nick} banned for 5 minutes for insults to relatives.`,
                 notifTitle: 'Notifications:\n',
                 notifEmpty: 'No notifications.',
                 nickeditorUsage: 'Usage: nickeditor <id> <new_nick>',
@@ -352,9 +409,16 @@
                 remainingMessages: 'General chat remaining messages',
                 onlineStatus: 'Online',
                 offlineStatus: 'Offline',
-                usersIpUsersTitle: 'Users List\n',
-                usersIpUsersFormat: '\nNick\tID\tStatus\n',
-                encryptedMessage: '[encrypted message]'
+                encryptedMessage: '[encrypted message]',
+                rulesLink: 'General Chat Rules',
+                smsUsage: 'Usage: sms <nick|id> <message>',
+                smsSent: 'Private message sent successfully.',
+                smsReceived: (from, message) => `PRIVATE MSG from ${from}: ${message}`,
+                smsSelf: 'You cannot send message to yourself.',
+                usersIpTitle: 'Online Users:\n',
+                usersIpFormat: '\nNick\tID\n',
+                noOnlineUsers: 'No online users.\n',
+                welcomeMessage: "Type 'help' for available commands"
             },
             ru: {
                 helpHint: "Введите 'help' для списка команд",
@@ -366,13 +430,14 @@
 - obchat: Войти в общий чат (введите /exit для выхода)
 - tongue [lang]: Сменить язык (en, ru)
 - notif: Показать уведомления
-- users_ip: Показать список пользователей с ником, ид, статусом`,
+- sms [ник|ид] [сообщение]: Отправить приватное сообщение
+- users_ip: Показать список онлайн пользователей с ником и ид`,
+                chatHelp: `Команды чата:
+- /exit: Выйти из чата
+- /sms [ник|ид] [сообщение]: Отправить приватное сообщение`,
                 adminHelp: `\nКоманды администратора (только для 🜲الشيطان🜲):
 - ban [ник|ид] [время] [причина]: Забанить пользователя от входа в чат
 - unban [ник|ид] [причина]: Разбанить пользователя из чата
-- bot [on|off]: Включить/выключить модерационного бота в чате
-- prov: Проверить статус бота
-- usersip: Показать список зарегистрированных пользователей с ником, айпи, ид, временем регистрации, статусом
 - nickeditor [ид] [новый_ник]: Изменить ник пользователя по ID
 - clear_chat (в чате): Очистить все сообщения чата`,
                 dateCmd: () => new Date().toLocaleString('ru-RU'),
@@ -394,15 +459,6 @@
                 unbanUsage: 'Использование: unban <ник|ид] [причина разбана]',
                 unbanDone: (target, reason) => `Пользователь ${target} разбанен. Причина: ${reason}`,
                 notBanned: (target) => `Пользователь ${target} не забанен.`,
-                usersIpTitle: 'Список зарегистрированных пользователей\nОнлайн пользователей: ',
-                usersIpFormat: '\nНик\tАйпи\tID\tВремя регистрации\tСтатус\n',
-                noUsers: 'Нет зарегистрированных пользователей.\n',
-                botOn: 'Модерационный бот включен в чате.',
-                botOff: 'Модерационный бот выключен в чате.',
-                botStatusOn: 'Бот включен.',
-                botStatusOff: 'Бот выключен.',
-                botInvalid: 'Использование: bot on|off',
-                botBanMsg: (nick) => `BOT: ${nick} забанен на 5 минут за оскорбления родных.`,
                 notifTitle: 'Уведомления:\n',
                 notifEmpty: 'Нет уведомлений.',
                 nickeditorUsage: 'Использование: nickeditor <ид] <новый_ник>',
@@ -416,9 +472,16 @@
                 remainingMessages: 'В общем чате остались сообщения',
                 onlineStatus: 'Онлайн',
                 offlineStatus: 'Оффлайн',
-                usersIpUsersTitle: 'Список пользователей\n',
-                usersIpUsersFormat: '\nНик\tID\tСтатус\n',
-                encryptedMessage: '[зашифрованное сообщение]'
+                encryptedMessage: '[зашифрованное сообщение]',
+                rulesLink: 'Правила общего чата',
+                smsUsage: 'Использование: sms <ник|ид] <сообщение>',
+                smsSent: 'Приватное сообщение отправлено успешно.',
+                smsReceived: (from, message) => `ПРИВАТНОЕ СООБЩЕНИЕ от ${from}: ${message}`,
+                smsSelf: 'Вы не можете отправить сообщение себе.',
+                usersIpTitle: 'Онлайн пользователи:\n',
+                usersIpFormat: '\nНик\tID\n',
+                noOnlineUsers: 'Нет онлайн пользователей.\n',
+                welcomeMessage: "Введите 'help' для списка команд"
             }
         };
         
@@ -426,6 +489,12 @@
             const t = translations[currentLang];
             const helpHintEl = document.getElementById('help-hint');
             if (helpHintEl) helpHintEl.textContent = t.helpHint;
+            
+            // Update welcome message
+            const welcomeText = welcomeMessage.querySelector('.welcome-text');
+            if (welcomeText) {
+                welcomeText.textContent = t.welcomeMessage;
+            }
         }
         
         // Chat simulation
@@ -434,14 +503,17 @@
         let isNickSet = false;
         let inChat = false;
         let bannedUsers = new Map();
-        let botEnabled = false;
         let notifications = [];
+        let unreadNotifications = 0;
+        let unreadObchat = 0;
         let registeredUsers = new Map();
         let chatListener = null;
         let onlineUsers = new Set();
         let onlineRef = null;
         let onlineListener = null;
         let chatDateShown = false;
+        let userStateListener = null;
+        let welcomeClosed = localStorage.getItem('welcomeClosed') === 'true';
         const MAX_CHAT_USERS = 50;
         const MAX_DISPLAY_MESSAGES = 10;
         const LOAD_MESSAGES_COUNT = 30;
@@ -451,7 +523,6 @@
         const IDS_PATH = 'ids';
         const BANS_PATH = 'bans';
         const CHAT_MESSAGES_PATH = 'chat_messages';
-        const BOT_SETTINGS_PATH = 'bot_settings';
         const ONLINE_USERS_PATH = 'online_users';
         
         // Generate unique ID
@@ -482,16 +553,14 @@
                     isNickSet = userData.is_nick_set || false;
                     notifications = userData.notifications || [];
                     notifications = notifications.slice(-50);
+                    unreadNotifications = userData.unread_notifications || 0;
+                    unreadObchat = userData.unread_obchat || 0;
                 }
                 if (isNickSet && !userId) {
                     userId = await generateUniqueID();
                     await db.ref(`${USERS_PATH}/${lowerNick}/id`).set(userId);
                     await db.ref(`${IDS_PATH}/${userId}`).set(lowerNick);
                 }
-
-                const botSnapshot = await db.ref(BOT_SETTINGS_PATH).once('value');
-                const botData = botSnapshot.val();
-                botEnabled = botData?.enabled || false;
 
                 await loadBans();
 
@@ -511,6 +580,12 @@
                 }
 
                 updateLanguage();
+                updateButtonBadges();
+                
+                // Show welcome message if not closed
+                if (!welcomeClosed) {
+                    welcomeMessage.style.display = 'block';
+                }
             } catch (error) {
                 console.error('Error loading state:', error);
             }
@@ -526,6 +601,8 @@
                     lang: currentLang,
                     is_nick_set: isNickSet,
                     notifications: notifications,
+                    unread_notifications: unreadNotifications,
+                    unread_obchat: unreadObchat,
                     ip: generateIP(),
                     last_login: new Date().toISOString()
                 });
@@ -596,22 +673,50 @@
             }
         }
 
-        // Save bot state
-        async function saveBotState(enabled) {
-            try {
-                await db.ref(BOT_SETTINGS_PATH).set({ enabled });
-                botEnabled = enabled;
-            } catch (error) {
-                console.error('Error saving bot state:', error);
-            }
-        }
-
         function addNotification(msg) {
             const timestamp = new Date().toLocaleString(getLocale());
             const notif = `${timestamp}: ${msg}`;
             notifications.push(notif);
             notifications = notifications.slice(-50);
+            unreadNotifications++;
+            updateButtonBadges();
             saveUserState();
+        }
+
+        function markNotificationsAsRead() {
+            unreadNotifications = 0;
+            updateButtonBadges();
+            saveUserState();
+        }
+
+        function markObchatAsRead() {
+            unreadObchat = 0;
+            updateButtonBadges();
+            saveUserState();
+        }
+
+        function updateButtonBadges() {
+            // Update notif badge
+            updateButtonBadge(notifBtn, unreadNotifications);
+            
+            // Update obchat badge
+            updateButtonBadge(obchatBtn, unreadObchat);
+        }
+
+        function updateButtonBadge(button, count) {
+            // Remove existing badge
+            const existingBadge = button.querySelector('.btn-badge');
+            if (existingBadge) {
+                existingBadge.remove();
+            }
+            
+            // Add new badge if count > 0
+            if (count > 0) {
+                const badge = document.createElement('span');
+                badge.className = 'btn-badge';
+                badge.textContent = count > 99 ? '99+' : count;
+                button.appendChild(badge);
+            }
         }
 
         async function registerUser(nick) {
@@ -688,6 +793,86 @@
             onlineRef.on('value', onlineListener);
         }
 
+        // Setup user state listener for SMS
+        function setupUserStateListener() {
+            const lowerNick = currentNick.toLowerCase();
+            if (userStateListener) {
+                db.ref(`${USERS_PATH}/${lowerNick}`).off('value', userStateListener);
+            }
+            userStateListener = (snapshot) => {
+                const userData = snapshot.val();
+                if (userData) {
+                    const oldUnreadNotif = unreadNotifications;
+                    const oldUnreadObchat = unreadObchat;
+                    
+                    unreadNotifications = userData.unread_notifications || 0;
+                    unreadObchat = userData.unread_obchat || 0;
+                    
+                    if (unreadNotifications !== oldUnreadNotif || unreadObchat !== oldUnreadObchat) {
+                        updateButtonBadges();
+                    }
+                }
+            };
+            db.ref(`${USERS_PATH}/${lowerNick}`).on('value', userStateListener);
+        }
+
+        // SMS system
+        async function handleSmsCommand(args, isChat = false) {
+            const t = getTranslations();
+            if (args.length < 2) {
+                return t.smsUsage;
+            }
+            
+            const targetStr = args[0];
+            const message = args.slice(1).join(' ');
+            let targetLower;
+            let targetDisplay = targetStr;
+            
+            // Find target
+            if (/^[a-z0-9]{4}$/i.test(targetStr)) {
+                const idSnap = await db.ref(`${IDS_PATH}/${targetStr.toLowerCase()}`).once('value');
+                if (!idSnap.exists()) {
+                    return t.targetNotFound(targetStr);
+                }
+                targetLower = idSnap.val();
+                const userSnap = await db.ref(`${USERS_PATH}/${targetLower}`).once('value');
+                if (userSnap.exists()) {
+                    targetDisplay = userSnap.val().display_nick;
+                }
+            } else {
+                targetLower = targetStr.toLowerCase();
+                const userSnap = await db.ref(`${USERS_PATH}/${targetLower}`).once('value');
+                if (!userSnap.exists()) {
+                    return t.targetNotFound(targetStr);
+                }
+                targetDisplay = userSnap.val().display_nick;
+            }
+            
+            // Check if self
+            if (targetLower === currentNick.toLowerCase()) {
+                return t.smsSelf;
+            }
+            
+            // Send SMS
+            const timestamp = new Date().toLocaleString(getLocale());
+            const smsMessage = t.smsReceived(currentNick + '[' + userId + ']', message);
+            const fullNotification = `${timestamp}: ${smsMessage}`;
+            
+            // Update target user's notifications
+            const targetUserRef = db.ref(`${USERS_PATH}/${targetLower}`);
+            const targetUserSnap = await targetUserRef.once('value');
+            const targetUserData = targetUserSnap.val() || {};
+            const targetNotifications = targetUserData.notifications || [];
+            targetNotifications.push(fullNotification);
+            
+            await targetUserRef.update({
+                notifications: targetNotifications.slice(-50),
+                unread_notifications: (targetUserData.unread_notifications || 0) + 1
+            });
+            
+            return t.smsSent;
+        }
+
         function getTranslations() {
             return translations[currentLang];
         }
@@ -726,10 +911,6 @@
             return currentNick === '🜲الشيطان🜲';
         }
         
-        function handleBotModeration(message, senderNick) {
-            console.log('Bot test: message checked');
-        }
-        
         async function checkBanAndExitIfNeeded() {
             const lowerNick = currentNick.toLowerCase();
             if (bannedUsers.has(lowerNick)) {
@@ -764,7 +945,7 @@
                 terminal.appendChild(inputElement);
                 
                 const t = getTranslations();
-                let helpText = t.help;
+                let helpText = t.chatHelp;
                 if (isAdmin()) {
                     helpText += t.adminHelp;
                 }
@@ -814,6 +995,16 @@
             status.className = 'chat-status';
             status.textContent = t.youInChat;
             terminal.appendChild(status);
+            
+            // Add rules link
+            const rulesLink = document.createElement('div');
+            rulesLink.className = 'rules-link';
+            rulesLink.textContent = t.rulesLink;
+            rulesLink.addEventListener('click', () => {
+                window.open('Rules.html', '_blank');
+            });
+            terminal.appendChild(rulesLink);
+            
             const divider2 = document.createElement('div');
             divider2.className = 'divider';
             divider2.textContent = '//--//--//--//--//--//--//';
@@ -849,6 +1040,18 @@
                 dateElement.textContent = t.chatDate(today, onlineUsers.size, MAX_CHAT_USERS);
             }
         }
+
+        function showWelcomeMessage() {
+            welcomeMessage.style.display = 'block';
+            welcomeClosed = false;
+            localStorage.setItem('welcomeClosed', 'false');
+        }
+
+        function hideWelcomeMessage() {
+            welcomeMessage.style.display = 'none';
+            welcomeClosed = true;
+            localStorage.setItem('welcomeClosed', 'true');
+        }
         
         const localCommands = {
             'help': () => {
@@ -867,6 +1070,10 @@
                 chatDateShown = false;
                 updatePrompt();
                 updateLanguage();
+                
+                // Show welcome message after clear
+                showWelcomeMessage();
+                
                 saveTerminal();
                 return '';
             },
@@ -898,6 +1105,8 @@
                         lang: currentLang,
                         is_nick_set: true,
                         notifications: [],
+                        unread_notifications: 0,
+                        unread_obchat: 0,
                         ip: generateIP(),
                         reg_time: new Date().toISOString()
                     });
@@ -941,6 +1150,7 @@
                 await showChatDate();
                 loadChatMessages();
                 await setOnline();
+                markObchatAsRead();
                 return '';
             },
             'tongue': async (args) => {
@@ -962,6 +1172,7 @@
             },
             'notif': () => {
                 const t = getTranslations();
+                markNotificationsAsRead();
                 if (notifications.length === 0) {
                     return t.notifEmpty;
                 }
@@ -971,18 +1182,33 @@
                 });
                 return output;
             },
+            'sms': async (args) => {
+                return await handleSmsCommand(args);
+            },
             'users_ip': () => {
                 const t = getTranslations();
-                let output = t.usersIpUsersTitle;
-                const sortedRegs = Array.from(registeredUsers.entries()).sort((a, b) => (b[1].lastLogin || 0) - (a[1].lastLogin || 0));
-                sortedRegs.forEach(([lowerNick, data]) => {
-                    const nick = data.displayNick;
-                    const id = data.id;
-                    const status = onlineUsers.has(lowerNick) ? t.onlineStatus : t.offlineStatus;
-                    output += `${nick}\t${id}\t${status}\n`;
+                let output = t.usersIpTitle;
+                
+                // Show all online users including current user
+                let hasOnlineUsers = false;
+                
+                // Add current user first
+                if (isNickSet && userId) {
+                    output += `${currentNick}\t${userId}\n`;
+                    hasOnlineUsers = true;
+                }
+                
+                // Add other online users
+                onlineUsers.forEach(lowerNick => {
+                    if (registeredUsers.has(lowerNick) && lowerNick !== currentNick.toLowerCase()) {
+                        const userData = registeredUsers.get(lowerNick);
+                        output += `${userData.displayNick}\t${userData.id}\n`;
+                        hasOnlineUsers = true;
+                    }
                 });
-                if (sortedRegs.length === 0) {
-                    output += t.noUsers;
+                
+                if (!hasOnlineUsers) {
+                    output += t.noOnlineUsers;
                 }
                 return output;
             },
@@ -1113,49 +1339,6 @@
                     lastLogin: userData.last_login ? new Date(userData.last_login).getTime() : null
                 });
                 return t.nickChanged(id, oldDisplay, newNick);
-            },
-            'bot': async (args) => {
-                const t = getTranslations();
-                if (!isAdmin()) {
-                    return t.onlyAdmin;
-                }
-                if (args.length < 1) {
-                    return t.botInvalid;
-                }
-                const action = args[0].toLowerCase();
-                if (action === 'on') {
-                    await saveBotState(true);
-                    return t.botOn;
-                } else if (action === 'off') {
-                    await saveBotState(false);
-                    return t.botOff;
-                } else {
-                    return t.botInvalid;
-                }
-            },
-            'prov': () => {
-                const t = getTranslations();
-                if (!isAdmin()) {
-                    return t.onlyAdmin;
-                }
-                return botEnabled ? t.botStatusOn : t.botStatusOff;
-            },
-            'usersip': () => {
-                const t = getTranslations();
-                let output = t.usersIpTitle + onlineUsers.size + t.usersIpFormat;
-                const sortedRegs = Array.from(registeredUsers.entries()).sort((a, b) => b[1].regTime - a[1].regTime);
-                sortedRegs.forEach(([lowerNick, data]) => {
-                    const nick = data.displayNick;
-                    const ip = data.ip;
-                    const id = data.id;
-                    const regStr = new Date(data.regTime).toLocaleString(getLocale());
-                    const status = onlineUsers.has(lowerNick) ? t.onlineStatus : t.offlineStatus;
-                    output += `${nick}\t${ip}\t${id}\t${regStr}\t${status}\n`;
-                });
-                if (sortedRegs.length === 0) {
-                    output += t.noUsers;
-                }
-                return output;
             }
         };
         
@@ -1210,6 +1393,10 @@
                 terminal.scrollTop = terminal.scrollHeight;
             }
         });
+
+        closeWelcomeBtn.addEventListener('click', () => {
+            hideWelcomeMessage();
+        });
         
         commandInput.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
@@ -1242,59 +1429,8 @@
                             unloadChatMessages();
                             await setOffline();
                             output = t.obchatLeave;
-                        } else if (chatCmd === 'nick') {
-                            const t = getTranslations();
-                            if (args.length > 0) {
-                                if (isNickSet) {
-                                    output = t.nickAlreadySet;
-                                } else {
-                                    const newNick = args.join(' ');
-                                    const newLowerNick = newNick.toLowerCase();
-                                    const existingSnapshot = await db.ref(`${USERS_PATH}/${newLowerNick}`).once('value');
-                                    if (existingSnapshot.exists()) {
-                                        output = t.nickExists;
-                                    } else {
-                                        const id = await generateUniqueID();
-                                        const oldNick = currentNick;
-                                        currentNick = newNick;
-                                        userId = id;
-                                        localStorage.setItem('currentNick', currentNick);
-                                        isNickSet = true;
-                                        await db.ref(`${USERS_PATH}/${newLowerNick}`).set({
-                                            display_nick: newNick,
-                                            id: id,
-                                            lang: currentLang,
-                                            is_nick_set: true,
-                                            notifications: [],
-                                            ip: generateIP(),
-                                            reg_time: new Date().toISOString()
-                                        });
-                                        await db.ref(`${IDS_PATH}/${id}`).set(newLowerNick);
-                                        updatePrompt();
-                                        if (oldNick === '🜲الشيطان🜲' && currentNick !== '🜲الشيطان🜲') {
-                                            output = `Nickname changed from ${oldNick} to ${currentNick}. Admin privileges lost.`;
-                                        } else {
-                                            output = t.nickSet(currentNick);
-                                        }
-                                        await saveUserState();
-                                    }
-                                }
-                            } else {
-                                output = t.nickUsage;
-                            }
-                        } else if (chatCmd === 'clear_chat') {
-                            const t = getTranslations();
-                            if (!isAdmin()) {
-                                output = t.onlyAdmin;
-                            } else {
-                                try {
-                                    await db.ref(CHAT_MESSAGES_PATH).remove();
-                                    output = t.clearChat;
-                                } catch (error) {
-                                    console.error('Error clearing chat:', error);
-                                    output = 'Error clearing chat.';
-                                }
-                            }
+                        } else if (chatCmd === 'sms') {
+                            output = await handleSmsCommand(args, true);
                         } else {
                             const t = getTranslations();
                             output = t.unknownChatCmd(chatCmd);
@@ -1310,8 +1446,6 @@
                             encrypted_text: encryptedText, // Новое зашифрованное поле
                             timestamp: firebase.database.ServerValue.TIMESTAMP
                         });
-                        
-                        handleBotModeration(commandText, currentNick);
                         
                         await checkBanAndExitIfNeeded();
                         
@@ -1364,6 +1498,7 @@
             }
             await loadState();
             setupOnlineListener();
+            setupUserStateListener();
             const savedTerminal = localStorage.getItem('pipelTerminal');
             if (savedTerminal) {
                 terminal.innerHTML = savedTerminal;
@@ -1377,4 +1512,4 @@
         init();
     </script>
 </body>
-    </html>
+</html>
