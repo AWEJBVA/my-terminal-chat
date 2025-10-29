@@ -213,16 +213,6 @@
             color: #f0f;
             font-style: italic;
         }
-        .rules-link {
-            text-align: center;
-            margin: 5px auto;
-            color: #0ff;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .rules-link:hover {
-            color: #ff0;
-        }
         .welcome-message {
             position: fixed;
             top: 50%;
@@ -410,7 +400,6 @@
                 onlineStatus: 'Online',
                 offlineStatus: 'Offline',
                 encryptedMessage: '[encrypted message]',
-                rulesLink: 'General Chat Rules',
                 smsUsage: 'Usage: sms <nick|id> <message>',
                 smsSent: 'Private message sent successfully.',
                 smsReceived: (from, message) => `PRIVATE MSG from ${from}: ${message}`,
@@ -473,7 +462,6 @@
                 onlineStatus: 'Онлайн',
                 offlineStatus: 'Оффлайн',
                 encryptedMessage: '[зашифрованное сообщение]',
-                rulesLink: 'Правила общего чата',
                 smsUsage: 'Использование: sms <ник|ид] <сообщение>',
                 smsSent: 'Приватное сообщение отправлено успешно.',
                 smsReceived: (from, message) => `ПРИВАТНОЕ СООБЩЕНИЕ от ${from}: ${message}`,
@@ -996,15 +984,6 @@
             status.textContent = t.youInChat;
             terminal.appendChild(status);
             
-            // Add rules link
-            const rulesLink = document.createElement('div');
-            rulesLink.className = 'rules-link';
-            rulesLink.textContent = t.rulesLink;
-            rulesLink.addEventListener('click', () => {
-                window.open('rules.html', '_blank');
-            });
-            terminal.appendChild(rulesLink);
-            
             const divider2 = document.createElement('div');
             divider2.className = 'divider';
             divider2.textContent = '//--//--//--//--//--//--//';
@@ -1431,6 +1410,21 @@
                             output = t.obchatLeave;
                         } else if (chatCmd === 'sms') {
                             output = await handleSmsCommand(args, true);
+                        } else if (chatCmd === 'clear_chat') {
+                            // Команда очистки чата только для админа
+                            if (!isAdmin()) {
+                                const t = getTranslations();
+                                output = t.onlyAdmin;
+                            } else {
+                                // Полностью очищаем все сообщения чата
+                                await db.ref(CHAT_MESSAGES_PATH).remove();
+                                const t = getTranslations();
+                                output = t.clearChat;
+                                // Перезагружаем чат
+                                terminal.innerHTML = '';
+                                await showChatDate();
+                                loadChatMessages();
+                            }
                         } else {
                             const t = getTranslations();
                             output = t.unknownChatCmd(chatCmd);
